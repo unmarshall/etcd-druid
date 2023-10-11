@@ -205,3 +205,5 @@ func IsSnapshotLease() predicate.Predicate {
 		},
 	}
 }
+
+func Is

@@ -49,7 +49,7 @@ const (
 
 // Reconciler reconciles compaction jobs for Etcd resources.
 type Reconciler struct {
-	client.Client
+	client      client.Client
 	config      *Config
 	imageVector imagevector.ImageVector
 	logger      logr.Logger
@@ -68,7 +68,7 @@ func NewReconciler(mgr manager.Manager, config *Config) (*Reconciler, error) {
 // This constructor will mostly be used by tests.
 func NewReconcilerWithImageVector(mgr manager.Manager, config *Config, imageVector imagevector.ImageVector) *Reconciler {
 	return &Reconciler{
-		Client:      mgr.GetClient(),
+		client:      mgr.GetClient(),
 		config:      config,
 		imageVector: imageVector,
 		logger:      log.Log.WithName("compaction-lease-controller"),
@@ -84,7 +84,7 @@ func NewReconcilerWithImageVector(mgr manager.Manager, config *Config, imageVect
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.logger.Info("Lease controller reconciliation started")
 	etcd := &druidv1alpha1.Etcd{}
-	if err := r.Get(ctx, req.NamespacedName, etcd); err != nil {
+	if err := r.client.Get(ctx, req.NamespacedName, etcd); err != nil {
 		if errors.IsNotFound(err) {
 			// Object not found, return. Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
@@ -110,7 +110,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Get full and delta snapshot lease to check the HolderIdentity value to take decision on compaction job
 	fullLease := &coordinationv1.Lease{}
 
-	if err := r.Get(ctx, kutil.Key(etcd.Namespace, etcd.GetFullSnapshotLeaseName()), fullLease); err != nil {
+	if err := r.client.Get(ctx, kutil.Key(etcd.Namespace, etcd.GetFullSnapshotLeaseName()), fullLease); err != nil {
 		logger.Error(err, "Couldn't fetch full snap lease", "namespace", etcd.Namespace, "name", etcd.GetFullSnapshotLeaseName())
 
 		return ctrl.Result{
@@ -119,7 +119,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	deltaLease := &coordinationv1.Lease{}
-	if err := r.Get(ctx, kutil.Key(etcd.Namespace, etcd.GetDeltaSnapshotLeaseName()), deltaLease); err != nil {
+	if err := r.client.Get(ctx, kutil.Key(etcd.Namespace, etcd.GetDeltaSnapshotLeaseName()), deltaLease); err != nil {
 		logger.Error(err, "Couldn't fetch delta snap lease", "namespace", etcd.Namespace, "name", etcd.GetDeltaSnapshotLeaseName())
 
 		return ctrl.Result{
@@ -167,7 +167,7 @@ func (r *Reconciler) reconcileJob(ctx context.Context, logger logr.Logger, etcd 
 
 	// First check if a job is already running
 	job := &batchv1.Job{}
-	err := r.Get(ctx, types.NamespacedName{Name: etcd.GetCompactionJobName(), Namespace: etcd.Namespace}, job)
+	err := r.client.Get(ctx, types.NamespacedName{Name: etcd.GetCompactionJobName(), Namespace: etcd.Namespace}, job)
 
 	if err != nil {
 		if !errors.IsNotFound(err) {
@@ -205,7 +205,7 @@ func (r *Reconciler) reconcileJob(ctx context.Context, logger logr.Logger, etcd 
 		if job.Status.StartTime != nil {
 			metricJobDurationSeconds.With(prometheus.Labels{druidmetrics.LabelSucceeded: druidmetrics.ValueSucceededFalse, druidmetrics.EtcdNamespace: etcd.Namespace}).Observe(time.Since(job.Status.StartTime.Time).Seconds())
 		}
-		err = r.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationForeground))
+		err = r.client.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationForeground))
 		if err != nil {
 			return ctrl.Result{
 				RequeueAfter: 10 * time.Second,
@@ -232,7 +232,7 @@ func (r *Reconciler) reconcileJob(ctx context.Context, logger logr.Logger, etcd 
 
 func (r *Reconciler) delete(ctx context.Context, logger logr.Logger, etcd *druidv1alpha1.Etcd) (ctrl.Result, error) {
 	job := &batchv1.Job{}
-	err := r.Get(ctx, types.NamespacedName{Name: etcd.GetCompactionJobName(), Namespace: etcd.Namespace}, job)
+	err := r.client.Get(ctx, types.NamespacedName{Name: etcd.GetCompactionJobName(), Namespace: etcd.Namespace}, job)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, fmt.Errorf("error while fetching compaction job: %v", err)
@@ -242,7 +242,7 @@ func (r *Reconciler) delete(ctx context.Context, logger logr.Logger, etcd *druid
 
 	if job.DeletionTimestamp == nil {
 		logger.Info("Deleting job", "namespace", job.Namespace, "name", job.Name)
-		if err := client.IgnoreNotFound(r.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationForeground))); err != nil {
+		if err := client.IgnoreNotFound(r.client.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationForeground))); err != nil {
 			return ctrl.Result{
 				RequeueAfter: 10 * time.Second,
 			}, fmt.Errorf("error while deleting compaction job: %v", err)
@@ -312,7 +312,7 @@ func (r *Reconciler) createCompactionJob(ctx context.Context, logger logr.Logger
 	}
 
 	logger.Info("Creating job", "namespace", job.Namespace, "name", job.Name)
-	err = r.Create(ctx, job)
+	err = r.client.Create(ctx, job)
 	if err != nil {
 		return nil, err
 	}

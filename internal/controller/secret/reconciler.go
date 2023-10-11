@@ -33,16 +33,16 @@ import (
 
 // Reconciler reconciles secrets referenced in Etcd objects.
 type Reconciler struct {
-	client.Client
-	Config *Config
+	client client.Client
+	config *Config
 	logger logr.Logger
 }
 
 // NewReconciler creates a new reconciler for Secret.
 func NewReconciler(mgr manager.Manager, config *Config) *Reconciler {
 	return &Reconciler{
-		Client: mgr.GetClient(),
-		Config: config,
+		client: mgr.GetClient(),
+		config: config,
 		logger: log.Log.WithName("secret-controller"),
 	}
 }
@@ -52,7 +52,7 @@ func NewReconciler(mgr manager.Manager, config *Config) *Reconciler {
 // Reconcile reconciles the secret.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	secret := &corev1.Secret{}
-	if err := r.Get(ctx, req.NamespacedName, secret); err != nil {
+	if err := r.client.Get(ctx, req.NamespacedName, secret); err != nil {
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
@@ -62,16 +62,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	logger := r.logger.WithValues("secret", client.ObjectKeyFromObject(secret))
 
 	etcdList := &druidv1alpha1.EtcdList{}
-	if err := r.Client.List(ctx, etcdList, client.InNamespace(secret.Namespace)); err != nil {
+	if err := r.client.List(ctx, etcdList, client.InNamespace(secret.Namespace)); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	if needed, etcd := isFinalizerNeeded(secret.Name, etcdList); needed {
 		logger.Info("Adding finalizer for secret since it is referenced by etcd resource",
 			"secretNamespace", secret.Namespace, "secretName", secret.Name, "etcdNamespace", etcd.Namespace, "etcdName", etcd.Name)
-		return ctrl.Result{}, addFinalizer(ctx, logger, r.Client, secret)
+		return ctrl.Result{}, addFinalizer(ctx, logger, r.client, secret)
 	}
-	return ctrl.Result{}, removeFinalizer(ctx, logger, r.Client, secret)
+	return ctrl.Result{}, removeFinalizer(ctx, logger, r.client, secret)
 }
 
 func isFinalizerNeeded(secretName string, etcdList *druidv1alpha1.EtcdList) (bool, *druidv1alpha1.Etcd) {

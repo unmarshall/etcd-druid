@@ -64,6 +64,7 @@ type ManagerConfig struct {
 	// DisableLeaseCache specifies whether to disable cache for lease.coordination.k8s.io resources.
 	DisableLeaseCache bool
 	// IgnoreOperationAnnotation specifies whether to ignore or honour the operation annotation on resources to be reconciled.
+	// TODO: better name please, or deprecate and use new flag
 	IgnoreOperationAnnotation bool
 	// FeatureGates contains the feature gates to be used by etcd-druid.
 	FeatureGates featuregate.MutableFeatureGate

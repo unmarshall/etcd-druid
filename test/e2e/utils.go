@@ -282,6 +282,7 @@ func getPeerTls(provider string) *v1alpha1.TLSConfig {
 }
 
 // EndpointStatus stores result from output of etcdctl endpoint status command
+// TODO: remove?
 type EndpointStatus []struct {
 	Endpoint string `json:"Endpoint"`
 	Status   struct {
@@ -300,6 +301,7 @@ type EndpointStatus []struct {
 }
 
 // SnapListResult stores the snaplist and any associated error
+// TODO: remove?
 type SnapListResult struct {
 	Snapshots brtypes.SnapList `json:"snapshots"`
 	Error     error            `json:"error"`

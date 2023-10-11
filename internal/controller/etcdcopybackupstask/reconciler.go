@@ -50,8 +50,8 @@ const (
 
 // Reconciler reconciles EtcdCopyBackupsTask object.
 type Reconciler struct {
-	client.Client
-	Config      *Config
+	client      client.Client
+	config      *Config
 	imageVector imagevector.ImageVector
 	logger      logr.Logger
 }
@@ -72,8 +72,8 @@ func NewReconciler(mgr manager.Manager, config *Config) (*Reconciler, error) {
 // This constructor will mostly be used by tests.
 func NewReconcilerWithImageVector(mgr manager.Manager, config *Config, imageVector imagevector.ImageVector) *Reconciler {
 	return &Reconciler{
-		Client:      mgr.GetClient(),
-		Config:      config,
+		client:      mgr.GetClient(),
+		config:      config,
 		imageVector: imageVector,
 		logger:      log.Log.WithName("etcd-copy-backups-task-controller"),
 	}
@@ -82,7 +82,7 @@ func NewReconcilerWithImageVector(mgr manager.Manager, config *Config, imageVect
 // Reconcile reconciles the EtcdCopyBackupsTask.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	task := &druidv1alpha1.EtcdCopyBackupsTask{}
-	if err := r.Get(ctx, req.NamespacedName, task); err != nil {
+	if err := r.client.Get(ctx, req.NamespacedName, task); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
@@ -101,7 +101,7 @@ func (r *Reconciler) reconcile(ctx context.Context, task *druidv1alpha1.EtcdCopy
 	// Ensure finalizer
 	if !controllerutil.ContainsFinalizer(task, common.FinalizerName) {
 		logger.V(1).Info("Adding finalizer", "finalizerName", common.FinalizerName)
-		if err := controllerutils.AddFinalizers(ctx, r.Client, task, common.FinalizerName); err != nil {
+		if err := controllerutils.AddFinalizers(ctx, r.client, task, common.FinalizerName); err != nil {
 			return ctrl.Result{}, fmt.Errorf("could not add finalizer: %w", err)
 		}
 	}
@@ -149,7 +149,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, task *druidv1alpha1.EtcdCo
 
 	// Create job
 	logger.Info("Creating job", "namespace", job.Namespace, "name", job.Name)
-	if err := r.Create(ctx, job); err != nil {
+	if err := r.client.Create(ctx, job); err != nil {
 		return status, fmt.Errorf("could not create job %s: %w", kutil.ObjectName(job), err)
 	}
 
@@ -187,7 +187,7 @@ func (r *Reconciler) delete(ctx context.Context, task *druidv1alpha1.EtcdCopyBac
 	// Remove finalizer if requested
 	if removeFinalizer {
 		logger.V(1).Info("Removing finalizer", "finalizerName", common.FinalizerName)
-		if err := controllerutils.RemoveFinalizers(ctx, r.Client, task, common.FinalizerName); err != nil {
+		if err := controllerutils.RemoveFinalizers(ctx, r.client, task, common.FinalizerName); err != nil {
 			return ctrl.Result{}, fmt.Errorf("could not remove finalizer: %w", err)
 		}
 	}
@@ -215,7 +215,7 @@ func (r *Reconciler) doDelete(ctx context.Context, task *druidv1alpha1.EtcdCopyB
 	// Delete job if needed
 	if job.DeletionTimestamp == nil {
 		logger.Info("Deleting job", "namespace", job.Namespace, "name", job.Name)
-		if err := r.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationForeground)); client.IgnoreNotFound(err) != nil {
+		if err := r.client.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationForeground)); client.IgnoreNotFound(err) != nil {
 			return status, false, fmt.Errorf("could not delete job %s: %w", kutil.ObjectName(job), err)
 		}
 	}
@@ -225,7 +225,7 @@ func (r *Reconciler) doDelete(ctx context.Context, task *druidv1alpha1.EtcdCopyB
 
 func (r *Reconciler) getJob(ctx context.Context, task *druidv1alpha1.EtcdCopyBackupsTask) (*batchv1.Job, error) {
 	job := &batchv1.Job{}
-	if err := r.Get(ctx, kutil.Key(task.Namespace, task.GetJobName()), job); err != nil {
+	if err := r.client.Get(ctx, kutil.Key(task.Namespace, task.GetJobName()), job); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, nil
 		}
@@ -240,7 +240,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, task *druidv1alpha1.EtcdC
 	}
 	patch := client.MergeFromWithOptions(task.DeepCopy(), client.MergeFromWithOptimisticLock{})
 	task.Status = *status
-	return r.Client.Status().Patch(ctx, task, patch)
+	return r.client.Status().Patch(ctx, task, patch)
 }
 
 func setStatusDetails(status *druidv1alpha1.EtcdCopyBackupsTaskStatus, generation int64, job *batchv1.Job, err error) {
@@ -285,7 +285,7 @@ func getConditionType(jobConditionType batchv1.JobConditionType) druidv1alpha1.C
 }
 
 func (r *Reconciler) createJobObject(ctx context.Context, task *druidv1alpha1.EtcdCopyBackupsTask) (*batchv1.Job, error) {
-	etcdBackupImage, err := druidutils.GetEtcdBackupRestoreImage(r.imageVector, r.Config.FeatureGates[features.UseEtcdWrapper])
+	etcdBackupImage, err := druidutils.GetEtcdBackupRestoreImage(r.imageVector, r.config.FeatureGates[features.UseEtcdWrapper])
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +309,7 @@ func (r *Reconciler) createJobObject(ctx context.Context, task *druidv1alpha1.Et
 	env := append(createEnvVarsFromStore(&sourceStore, sourceProvider, "SOURCE_", sourcePrefix), createEnvVarsFromStore(&targetStore, targetProvider, "", "")...)
 
 	// Formulate the job's volume mounts.
-	volumeMounts := append(createVolumeMountsFromStore(&sourceStore, sourceProvider, sourcePrefix, r.Config.FeatureGates[features.UseEtcdWrapper]), createVolumeMountsFromStore(&targetStore, targetProvider, targetPrefix, r.Config.FeatureGates[features.UseEtcdWrapper])...)
+	volumeMounts := append(createVolumeMountsFromStore(&sourceStore, sourceProvider, sourcePrefix, r.config.FeatureGates[features.UseEtcdWrapper]), createVolumeMountsFromStore(&targetStore, targetProvider, targetPrefix, r.config.FeatureGates[features.UseEtcdWrapper])...)
 
 	// Formulate the job's volumes from the source store.
 	sourceVolumes, err := r.createVolumesFromStore(ctx, &sourceStore, task.Namespace, sourceProvider, sourcePrefix)
@@ -362,7 +362,7 @@ func (r *Reconciler) createJobObject(ctx context.Context, task *druidv1alpha1.Et
 		},
 	}
 
-	if r.Config.FeatureGates[features.UseEtcdWrapper] {
+	if r.config.FeatureGates[features.UseEtcdWrapper] {
 		if targetProvider == druidutils.Local {
 			// init container to change file permissions of the folders used as store to 65532 (nonroot)
 			// used only with local provider
@@ -388,7 +388,7 @@ func (r *Reconciler) createJobObject(ctx context.Context, task *druidv1alpha1.Et
 		}
 	}
 
-	if err := controllerutil.SetControllerReference(task, job, r.Scheme()); err != nil {
+	if err := controllerutil.SetControllerReference(task, job, r.client.Scheme()); err != nil {
 		return nil, fmt.Errorf("could not set owner reference for job %v: %w", kutil.ObjectName(job), err)
 	}
 	return job, nil
@@ -437,7 +437,7 @@ func (r *Reconciler) createVolumesFromStore(ctx context.Context, store *druidv1a
 	switch provider {
 	case druidutils.Local:
 		hostPathDirectory := corev1.HostPathDirectory
-		hostPathPrefix, err := druidutils.GetHostMountPathFromSecretRef(ctx, r.Client, r.logger, store, namespace)
+		hostPathPrefix, err := druidutils.GetHostMountPathFromSecretRef(ctx, r.client, r.logger, store, namespace)
 		if err != nil {
 			return nil, err
 		}

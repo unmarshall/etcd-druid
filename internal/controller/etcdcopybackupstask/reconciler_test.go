@@ -159,7 +159,7 @@ var _ = Describe("EtcdCopyBackupsTaskController", func() {
 					Repository: "test-repo",
 					Tag:        pointer.String("etcd-test-tag"),
 				}},
-				Config: &Config{
+				config: &Config{
 					FeatureGates: make(map[featuregate.Feature]bool),
 				},
 			}
