@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/controllers/utils"
+	"github.com/gardener/etcd-druid/internal/controller/utils"
 	"github.com/gardener/etcd-druid/pkg/common"
 	"github.com/gardener/etcd-druid/pkg/features"
 	druidutils "github.com/gardener/etcd-druid/pkg/utils"

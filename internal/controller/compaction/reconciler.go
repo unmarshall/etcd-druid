@@ -21,7 +21,7 @@ import (
 	"time"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	ctrlutils "github.com/gardener/etcd-druid/controllers/utils"
+	ctrlutils "github.com/gardener/etcd-druid/internal/controller/utils"
 	"github.com/gardener/etcd-druid/pkg/features"
 	druidmetrics "github.com/gardener/etcd-druid/pkg/metrics"
 	"github.com/gardener/etcd-druid/pkg/utils"

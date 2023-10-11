@@ -17,7 +17,7 @@ package etcdcopybackupstask
 import (
 	"testing"
 
-	"github.com/gardener/etcd-druid/controllers/etcdcopybackupstask"
+	etcdcopybackupstask2 "github.com/gardener/etcd-druid/internal/controller/etcdcopybackupstask"
 	"github.com/gardener/etcd-druid/test/integration/controllers/assets"
 	"github.com/gardener/etcd-druid/test/integration/setup"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
@@ -55,7 +55,7 @@ var _ = BeforeSuite(func() {
 	imageVector = assets.CreateImageVector()
 	intTestEnv = setup.NewIntegrationTestEnv(testNamespacePrefix, "etcdcopybackupstask-int-tests", crdPaths)
 	intTestEnv.RegisterReconcilers(func(mgr manager.Manager) {
-		reconciler := etcdcopybackupstask.NewReconcilerWithImageVector(mgr, &etcdcopybackupstask.Config{
+		reconciler := etcdcopybackupstask2.NewReconcilerWithImageVector(mgr, &etcdcopybackupstask2.Config{
 			Workers: 5,
 		}, imageVector)
 		Expect(reconciler.RegisterWithManager(mgr)).To(Succeed())

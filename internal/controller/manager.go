@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package controllers
+package controller
 
 import (
 	"context"
 	"time"
 
-	"github.com/gardener/etcd-druid/controllers/compaction"
 	"github.com/gardener/etcd-druid/controllers/custodian"
 	"github.com/gardener/etcd-druid/controllers/etcd"
-	"github.com/gardener/etcd-druid/controllers/etcdcopybackupstask"
-	"github.com/gardener/etcd-druid/controllers/secret"
+	"github.com/gardener/etcd-druid/internal/controller/compaction"
+	"github.com/gardener/etcd-druid/internal/controller/etcdcopybackupstask"
+	"github.com/gardener/etcd-druid/internal/controller/secret"
 	"github.com/gardener/etcd-druid/pkg/client/kubernetes"
 
 	coordinationv1 "k8s.io/api/coordination/v1"

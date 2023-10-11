@@ -18,9 +18,9 @@ import (
 	"testing"
 	"time"
 
+	compaction2 "github.com/gardener/etcd-druid/internal/controller/compaction"
 	"github.com/gardener/etcd-druid/test/integration/controllers/assets"
 
-	"github.com/gardener/etcd-druid/controllers/compaction"
 	"github.com/gardener/etcd-druid/test/integration/setup"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -53,7 +53,7 @@ var _ = BeforeSuite(func() {
 
 	intTestEnv = setup.NewIntegrationTestEnv(testNamespacePrefix, "compaction-int-tests", crdPaths)
 	intTestEnv.RegisterReconcilers(func(mgr manager.Manager) {
-		reconciler := compaction.NewReconcilerWithImageVector(mgr, &compaction.Config{
+		reconciler := compaction2.NewReconcilerWithImageVector(mgr, &compaction2.Config{
 			EnableBackupCompaction:    true,
 			Workers:                   5,
 			EventsThreshold:           100,

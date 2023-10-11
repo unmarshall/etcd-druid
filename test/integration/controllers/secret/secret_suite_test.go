@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gardener/etcd-druid/controllers/secret"
+	secret2 "github.com/gardener/etcd-druid/internal/controller/secret"
 	"github.com/gardener/etcd-druid/test/integration/controllers/assets"
 	"github.com/gardener/etcd-druid/test/integration/setup"
 	. "github.com/onsi/ginkgo/v2"
@@ -51,7 +51,7 @@ var _ = BeforeSuite(func() {
 	crdPaths := []string{assets.GetEtcdCrdPath()}
 	intTestEnv = setup.NewIntegrationTestEnv(testNamespacePrefix, "secret-int-tests", crdPaths)
 	intTestEnv.RegisterReconcilers(func(mgr manager.Manager) {
-		reconciler := secret.NewReconciler(mgr, &secret.Config{
+		reconciler := secret2.NewReconciler(mgr, &secret2.Config{
 			Workers: 5,
 		})
 		Expect(reconciler.RegisterWithManager(context.TODO(), mgr)).To(Succeed())

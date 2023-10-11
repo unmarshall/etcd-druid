@@ -18,7 +18,7 @@ import (
 	"context"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	druidpredicates "github.com/gardener/etcd-druid/controllers/predicate"
+	druidpredicates "github.com/gardener/etcd-druid/internal/controller/predicate"
 	druidmapper "github.com/gardener/etcd-druid/pkg/mapper"
 
 	"github.com/gardener/gardener/pkg/controllerutils/mapper"
