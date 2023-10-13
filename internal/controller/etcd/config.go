@@ -13,14 +13,16 @@ import (
 // Flag names
 const (
 	workersFlagName                            = "etcd-workers"
+	ignoreOperationAnnotationFlagName          = "ignore-operation-annotation"
 	disableEtcdServiceAccountAutomountFlagName = "disable-etcd-serviceaccount-automount"
 	etcdStatusSyncPeriodFlagName               = "etcd-status-sync-period"
 )
 
 const (
-	defaultEtcdStatusSyncPeriod               = 15 * time.Second
 	defaultWorkers                            = 3
+	defaultIgnoreOperationAnnotation          = false
 	defaultDisableEtcdServiceAccountAutomount = false
+	defaultEtcdStatusSyncPeriod               = 15 * time.Second
 )
 
 // featureList holds the feature gate names that are relevant for the Etcd Controller.
@@ -32,6 +34,9 @@ var featureList = []featuregate.Feature{
 type Config struct {
 	// Workers is the number of workers concurrently processing reconciliation requests.
 	Workers int
+	// IgnoreOperationAnnotation specifies whether to ignore or honour the operation annotation on resources to be reconciled.
+	// TODO: better name please, or deprecate and use new flag
+	IgnoreOperationAnnotation bool
 	// DisableEtcdServiceAccountAutomount controls the auto-mounting of service account token for ETCD StatefulSets.
 	DisableEtcdServiceAccountAutomount bool
 	// EtcdStatusSyncPeriod is the duration after which an event will be re-queued ensuring ETCD status synchronization.
@@ -44,6 +49,8 @@ type Config struct {
 func InitFromFlags(fs *flag.FlagSet, cfg *Config) {
 	fs.IntVar(&cfg.Workers, workersFlagName, defaultWorkers,
 		"Number of workers spawned for concurrent reconciles of etcd spec and status changes. If not specified then default of 3 is assumed.")
+	flag.BoolVar(&cfg.IgnoreOperationAnnotation, ignoreOperationAnnotationFlagName, defaultIgnoreOperationAnnotation,
+		"Specifies whether to ignore or honour the operation annotation on resources to be reconciled.")
 	fs.BoolVar(&cfg.DisableEtcdServiceAccountAutomount, disableEtcdServiceAccountAutomountFlagName, defaultDisableEtcdServiceAccountAutomount,
 		"If true then .automountServiceAccountToken will be set to false for the ServiceAccount created for etcd StatefulSets.")
 	fs.DurationVar(&cfg.EtcdStatusSyncPeriod, etcdStatusSyncPeriodFlagName, defaultEtcdStatusSyncPeriod,

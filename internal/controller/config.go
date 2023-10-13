@@ -35,14 +35,12 @@ const (
 	enableLeaderElectionFlagName       = "enable-leader-election"
 	leaderElectionIDFlagName           = "leader-election-id"
 	leaderElectionResourceLockFlagName = "leader-election-resource-lock"
-	ignoreOperationAnnotationFlagName  = "ignore-operation-annotation"
 	disableLeaseCacheFlagName          = "disable-lease-cache"
 
 	defaultMetricsAddr                = ":8080"
 	defaultEnableLeaderElection       = false
 	defaultLeaderElectionID           = "druid-leader-election"
 	defaultLeaderElectionResourceLock = resourcelock.LeasesResourceLock
-	defaultIgnoreOperationAnnotation  = false
 	defaultDisableLeaseCache          = false
 )
 
@@ -63,9 +61,6 @@ type ManagerConfig struct {
 	LeaderElectionConfig
 	// DisableLeaseCache specifies whether to disable cache for lease.coordination.k8s.io resources.
 	DisableLeaseCache bool
-	// IgnoreOperationAnnotation specifies whether to ignore or honour the operation annotation on resources to be reconciled.
-	// TODO: better name please, or deprecate and use new flag
-	IgnoreOperationAnnotation bool
 	// FeatureGates contains the feature gates to be used by etcd-druid.
 	FeatureGates featuregate.MutableFeatureGate
 	// EtcdControllerConfig is the configuration required for etcd controller.
@@ -92,8 +87,6 @@ func (cfg *ManagerConfig) InitFromFlags(fs *flag.FlagSet) error {
 		"Specifies which resource type to use for leader election. Supported options are 'endpoints', 'configmaps', 'leases', 'endpointsleases' and 'configmapsleases'.")
 	flag.BoolVar(&cfg.DisableLeaseCache, disableLeaseCacheFlagName, defaultDisableLeaseCache,
 		"Disable cache for lease.coordination.k8s.io resources.")
-	flag.BoolVar(&cfg.IgnoreOperationAnnotation, ignoreOperationAnnotationFlagName, defaultIgnoreOperationAnnotation,
-		"Specifies whether to ignore or honour the operation annotation on resources to be reconciled.")
 
 	if err := cfg.initFeatureGates(fs); err != nil {
 		return err

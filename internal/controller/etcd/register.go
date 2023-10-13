@@ -2,8 +2,10 @@ package etcd
 
 import (
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
+	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"time"
 )
 
 const controllerName = "etcd-controller"
@@ -15,6 +17,8 @@ func (r *Reconciler) RegisterWithManager(mgr ctrl.Manager) error {
 		Named(controllerName).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: r.config.Workers,
+			// TODO: check if necessary
+			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(10*time.Millisecond, 2*r.config.EtcdStatusSyncPeriod),
 		}).
 		For(&druidv1alpha1.Etcd{})
 

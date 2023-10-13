@@ -2,12 +2,17 @@ package etcd
 
 import (
 	"context"
+	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	ctrlutils "github.com/gardener/etcd-druid/internal/controller/utils"
-	ctrl "sigs.k8s.io/controller-runtime"
-
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -15,6 +20,7 @@ import (
 
 const (
 	// IgnoreReconciliationAnnotation is an annotation set by an operator in order to stop reconciliation.
+	// TODO: move to api constants?
 	IgnoreReconciliationAnnotation = "druid.gardener.cloud/ignore-reconciliation"
 )
 
@@ -64,7 +70,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				skip reconcileSpec()
 			Else If IgnoreOperationAnnotation flag is true:
 				always reconcileSpec()
-			Else If IgnoreOperationAnnotation flag is false:
+			Else If IgnoreOperationAnnotation flag is false and reconcile-op annotation is present:
 				reconcileSpec()
 				if err in getting etcd, return with requeue
 				if err in deploying any of the components, then record pending requeue
@@ -72,22 +78,70 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		requeue after minimum of X seconds (EtcdStatusSyncPeriod) and previously recorded requeue request
 	*/
 
-	return ctrl.Result{}, nil
+	r.logger.WithValues("Etcd", req.NamespacedName)
+	r.logger.Info("Etcd-controller reconciliation started")
+
+	etcd := &druidv1alpha1.Etcd{}
+	if err := r.client.Get(ctx, req.NamespacedName, etcd); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{Requeue: false}, nil
+		}
+		return ctrl.Result{Requeue: true}, err
+	}
+
+	if !etcd.DeletionTimestamp.IsZero() {
+		if err := r.delete(ctx, etcd); err != nil {
+			return ctrl.Result{Requeue: true}, err
+		}
+	}
+
+	if metav1.HasAnnotation(etcd.ObjectMeta, IgnoreReconciliationAnnotation) {
+		r.recorder.Eventf(
+			etcd,
+			corev1.EventTypeWarning,
+			"ReconciliationIgnored",
+			"reconciliation of %s/%s is ignored by etcd-druid due to the presence of annotation %s on the etcd resource",
+			etcd.Namespace,
+			etcd.Name,
+			IgnoreReconciliationAnnotation,
+		)
+		return ctrl.Result{Requeue: false}, nil
+	}
+
+	var reconcileSpecErr error
+	if r.shouldReconcileSpec(etcd) {
+		reconcileSpecErr = r.reconcileSpec(ctx, etcd)
+	}
+
+	r.reconcileStatus(ctx, req.NamespacedName)
+
+	if reconcileSpecErr != nil {
+		return ctrl.Result{Requeue: true}, reconcileSpecErr
+	}
+	return ctrl.Result{RequeueAfter: r.config.EtcdStatusSyncPeriod}, nil
 }
 
-func (r *Reconciler) reconcileSpec() {
+func (r *Reconciler) reconcileSpec(ctx context.Context, etcd *druidv1alpha1.Etcd) error {
 	/*
+		update status to reflect observedGeneration, lastError, etc (fields specific to spec reconciliation)
+	*/
 
-	 */
+	return nil
 }
 
-func (r *Reconciler) reconcileStatus() {
+func (r *Reconciler) reconcileStatus(ctx context.Context, etcdNamespacedName types.NamespacedName) {
 	/*
+		fetch EtcdMember resources
+		fetch member leases
+		status.condition checks
+		status.members checks
+		fetch latest Etcd resource
+		update etcd status
+	*/
 
-	 */
 }
 
-func (r *Reconciler) delete() {
+func (r *Reconciler) delete(ctx context.Context, etcd *druidv1alpha1.Etcd) error {
 	/*
 		components [];
 		for component in components:
@@ -97,4 +151,13 @@ func (r *Reconciler) delete() {
 			if component does not exist, then record skip
 		if all components have been recorded as non-existent, then remove finalizer and exit
 	*/
+
+	return nil
+}
+
+func (r *Reconciler) shouldReconcileSpec(etcd *druidv1alpha1.Etcd) bool {
+	// TODO: replace v1beta1constants.GardenerOperation with own `druid.gardener.cloud/operation: reconcile`
+	// and make gardener use druid's constant instead of druid use gardener's constant
+	return r.config.IgnoreOperationAnnotation ||
+		(!r.config.IgnoreOperationAnnotation && metav1.HasAnnotation(etcd.ObjectMeta, v1beta1constants.GardenerOperation))
 }
