@@ -73,3 +73,11 @@ type Condition struct {
 	// A human readable message indicating details about the transition.
 	Message string `json:"message"`
 }
+
+const (
+	// IgnoreReconciliationAnnotation is an annotation set by an operator in order to stop reconciliation.
+	// Deprecated: Please use PauseSpecReconcileAnnotation instead
+	IgnoreReconciliationAnnotation = "druid.gardener.cloud/ignore-reconciliation"
+	// PauseSpecReconcileAnnotation is an annotation set by an operator in order to have a temporary pause of any reconciliation done by druid for etcd resources.
+	PauseSpecReconcileAnnotation = "druid.gardener.cloud/pause-spec-reconcile"
+)

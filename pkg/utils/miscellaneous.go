@@ -16,6 +16,7 @@ package utils
 
 import (
 	"fmt"
+	"maps"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -43,6 +44,17 @@ func MergeStringMaps(oldMap map[string]string, newMaps ...map[string]string) map
 	}
 
 	return out
+}
+
+func MergeMaps[K comparable, V any](sourceMaps ...map[K]V) map[K]V {
+	if sourceMaps == nil {
+		return nil
+	}
+	merged := make(map[K]V)
+	for _, m := range sourceMaps {
+		maps.Copy(merged, m)
+	}
+	return merged
 }
 
 func nameAndNamespace(namespaceOrName string, nameOpt ...string) (namespace, name string) {
@@ -76,4 +88,11 @@ func Max(x, y int) int {
 		return y
 	}
 	return x
+}
+
+func TypeDeref[T any](val *T, defaultVal T) T {
+	if val != nil {
+		return *val
+	}
+	return defaultVal
 }

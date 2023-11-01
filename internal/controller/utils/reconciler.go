@@ -16,9 +16,12 @@ package utils
 
 import (
 	"path/filepath"
+	"time"
 
 	"github.com/gardener/etcd-druid/pkg/common"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -40,4 +43,59 @@ func CreateImageVector() (imagevector.ImageVector, error) {
 		return nil, err
 	}
 	return imageVector, nil
+}
+
+// ContainsFinalizer checks if an object has a finalizer present on it.
+// TODO: With the controller-runtime version 0.16.x onwards this is provided by controllerutil.ContainsFinalizer.
+// TODO: Remove this function once we move to this version.
+func ContainsFinalizer(o client.Object, finalizer string) bool {
+	finalizers := o.GetFinalizers()
+	for _, f := range finalizers {
+		if f == finalizer {
+			return true
+		}
+	}
+	return false
+}
+
+type ReconcileStepResult struct {
+	result            ctrl.Result
+	err               error
+	continueReconcile bool
+}
+
+func (r ReconcileStepResult) ReconcileResult() (ctrl.Result, error) {
+	return r.result, r.err
+}
+
+func DoNotRequeue() ReconcileStepResult {
+	return ReconcileStepResult{
+		continueReconcile: false,
+		result:            ctrl.Result{Requeue: false},
+	}
+}
+
+func ContinueReconcile() ReconcileStepResult {
+	return ReconcileStepResult{
+		continueReconcile: true,
+	}
+}
+
+func ReconcileWithError(err error) ReconcileStepResult {
+	return ReconcileStepResult{
+		continueReconcile: false,
+		result:            ctrl.Result{Requeue: true},
+		err:               err,
+	}
+}
+
+func ReconcileAfter(period time.Duration) ReconcileStepResult {
+	return ReconcileStepResult{
+		continueReconcile: false,
+		result:            ctrl.Result{RequeueAfter: period},
+	}
+}
+
+func ShortCircuitReconcile(result ReconcileStepResult) bool {
+	return !result.continueReconcile
 }

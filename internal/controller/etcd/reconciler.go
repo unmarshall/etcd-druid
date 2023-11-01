@@ -2,8 +2,10 @@ package etcd
 
 import (
 	"context"
+
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	ctrlutils "github.com/gardener/etcd-druid/internal/controller/utils"
+	"github.com/gardener/etcd-druid/internal/resource"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	"github.com/go-logr/logr"
@@ -18,33 +20,35 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-const (
-	// IgnoreReconciliationAnnotation is an annotation set by an operator in order to stop reconciliation.
-	// TODO: move to api constants?
-	IgnoreReconciliationAnnotation = "druid.gardener.cloud/ignore-reconciliation"
-)
-
 type Reconciler struct {
-	client      client.Client
-	config      *Config
-	recorder    record.EventRecorder
-	imageVector imagevector.ImageVector
-	logger      logr.Logger
+	client           client.Client
+	config           *Config
+	recorder         record.EventRecorder
+	imageVector      imagevector.ImageVector
+	operatorRegistry resource.OperatorRegistry
+	logger           logr.Logger
 }
 
 // NewReconciler creates a new reconciler for Etcd.
 func NewReconciler(mgr manager.Manager, config *Config) (*Reconciler, error) {
 	imageVector, err := ctrlutils.CreateImageVector()
+	logger := log.Log.WithName(controllerName)
 	if err != nil {
 		return nil, err
 	}
-
+	operatorReg := resource.NewOperatorRegistry(mgr.GetClient(),
+		logger,
+		resource.OperatorConfig{
+			DisableEtcdServiceAccountAutomount: config.DisableEtcdServiceAccountAutomount,
+		},
+	)
 	return &Reconciler{
-		client:      mgr.GetClient(),
-		config:      config,
-		recorder:    mgr.GetEventRecorderFor(controllerName),
-		imageVector: imageVector,
-		logger:      log.Log.WithName(controllerName),
+		client:           mgr.GetClient(),
+		config:           config,
+		recorder:         mgr.GetEventRecorderFor(controllerName),
+		imageVector:      imageVector,
+		logger:           logger,
+		operatorRegistry: operatorReg,
 	}, nil
 }
 
@@ -141,18 +145,56 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, etcdNamespacedName typ
 
 }
 
-func (r *Reconciler) delete(ctx context.Context, etcd *druidv1alpha1.Etcd) error {
-	/*
-		components [];
-		for component in components:
-			get component
-			if component exists:
-				delete component; if error then requeue
-			if component does not exist, then record skip
-		if all components have been recorded as non-existent, then remove finalizer and exit
-	*/
-
-	return nil
+//	func (r *Reconciler) delete(ctx context.Context, etcd *druidv1alpha1.Etcd) error {
+//		err := r.deleteEtcdResources(ctx, etcd)
+//		if err != nil {
+//			return err
+//		}
+//
+//		if ctrlutils.ContainsFinalizer(etcd, common.FinalizerName) {
+//
+//		}
+//		if sets.NewString(etcd.Finalizers...).Has(common.FinalizerName) {
+//			logger.Info("Removing finalizer", "namespace", etcd.Namespace, "name", etcd.Name, "finalizerName", common.FinalizerName)
+//			if err := controllerutils.RemoveFinalizers(ctx, r.Client, etcd, common.FinalizerName); client.IgnoreNotFound(err) != nil {
+//				return ctrl.Result{
+//					Requeue: true,
+//				}, err
+//			}
+//		}
+//		/*
+//			components [];
+//			for component in components:
+//				get component
+//				if component exists:
+//					delete component; if error then requeue
+//				if component does not exist, then record skip
+//			if all components have been recorded as non-existent, then remove finalizer and exit
+//		*/
+//
+//		return nil
+//	}
+func (r *Reconciler) handleReconcilePause(etcd *druidv1alpha1.Etcd) ctrlutils.ReconcileActionResult {
+	//TODO: Once no one uses IgnoreReconciliationAnnotation annotation, then we can simplify this code.
+	var annotationKey string
+	if metav1.HasAnnotation(etcd.ObjectMeta, druidv1alpha1.PauseSpecReconcileAnnotation) {
+		annotationKey = druidv1alpha1.PauseSpecReconcileAnnotation
+	} else if metav1.HasAnnotation(etcd.ObjectMeta, druidv1alpha1.IgnoreReconciliationAnnotation) {
+		annotationKey = druidv1alpha1.IgnoreReconciliationAnnotation
+	}
+	if len(annotationKey) > 0 {
+		r.recorder.Eventf(
+			etcd,
+			corev1.EventTypeWarning,
+			"SpecReconciliationSkipped",
+			"spec reconciliation of %s/%s is skipped by etcd-druid due to the presence of annotation %s on the etcd resource",
+			etcd.Namespace,
+			etcd.Name,
+			annotationKey,
+		)
+		return ctrlutils.DoNotRequeue()
+	}
+	return ctrlutils.ContinueReconcile()
 }
 
 func (r *Reconciler) shouldReconcileSpec(etcd *druidv1alpha1.Etcd) bool {

@@ -87,9 +87,9 @@ var _ = Describe("Etcd", func() {
 		})
 	})
 
-	Context("GetConfigmapName", func() {
+	Context("GetConfigMapName", func() {
 		It("should return the correct configmap name", func() {
-			Expect(created.GetConfigmapName()).To(Equal("etcd-bootstrap-123456"))
+			Expect(created.GetConfigMapName()).To(Equal("etcd-bootstrap-123456"))
 		})
 	})
 

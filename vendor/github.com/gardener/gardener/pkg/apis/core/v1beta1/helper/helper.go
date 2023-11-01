@@ -20,145 +20,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/clock"
 	"k8s.io/utils/pointer"
 
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	versionutils "github.com/gardener/gardener/pkg/utils/version"
 )
-
-// InitConditionWithClock initializes a new Condition with an Unknown status. It allows passing a custom clock for testing.
-func InitConditionWithClock(clock clock.Clock, conditionType gardencorev1beta1.ConditionType) gardencorev1beta1.Condition {
-	now := metav1.Time{Time: clock.Now()}
-	return gardencorev1beta1.Condition{
-		Type:               conditionType,
-		Status:             gardencorev1beta1.ConditionUnknown,
-		Reason:             "ConditionInitialized",
-		Message:            "The condition has been initialized but its semantic check has not been performed yet.",
-		LastTransitionTime: now,
-		LastUpdateTime:     now,
-	}
-}
-
-// GetCondition returns the condition with the given <conditionType> out of the list of <conditions>.
-// In case the required type could not be found, it returns nil.
-func GetCondition(conditions []gardencorev1beta1.Condition, conditionType gardencorev1beta1.ConditionType) *gardencorev1beta1.Condition {
-	for _, condition := range conditions {
-		if condition.Type == conditionType {
-			c := condition
-			return &c
-		}
-	}
-	return nil
-}
-
-// GetOrInitConditionWithClock tries to retrieve the condition with the given condition type from the given conditions.
-// If the condition could not be found, it returns an initialized condition of the given type. It allows passing a custom clock for testing.
-func GetOrInitConditionWithClock(clock clock.Clock, conditions []gardencorev1beta1.Condition, conditionType gardencorev1beta1.ConditionType) gardencorev1beta1.Condition {
-	if condition := GetCondition(conditions, conditionType); condition != nil {
-		return *condition
-	}
-	return InitConditionWithClock(clock, conditionType)
-}
-
-// UpdatedConditionWithClock updates the properties of one specific condition. It allows passing a custom clock for testing.
-func UpdatedConditionWithClock(clock clock.Clock, condition gardencorev1beta1.Condition, status gardencorev1beta1.ConditionStatus, reason, message string, codes ...gardencorev1beta1.ErrorCode) gardencorev1beta1.Condition {
-	builder, err := NewConditionBuilder(condition.Type)
-	utilruntime.Must(err)
-	newCondition, _ := builder.
-		WithOldCondition(condition).
-		WithClock(clock).
-		WithStatus(status).
-		WithReason(reason).
-		WithMessage(message).
-		WithCodes(codes...).
-		Build()
-
-	return newCondition
-}
-
-// UpdatedConditionUnknownErrorWithClock updates the condition to 'Unknown' status and the message of the given error. It allows passing a custom clock for testing.
-func UpdatedConditionUnknownErrorWithClock(clock clock.Clock, condition gardencorev1beta1.Condition, err error, codes ...gardencorev1beta1.ErrorCode) gardencorev1beta1.Condition {
-	return UpdatedConditionUnknownErrorMessageWithClock(clock, condition, err.Error(), codes...)
-}
-
-// UpdatedConditionUnknownErrorMessageWithClock updates the condition with 'Unknown' status and the given message. It allows passing a custom clock for testing.
-func UpdatedConditionUnknownErrorMessageWithClock(clock clock.Clock, condition gardencorev1beta1.Condition, message string, codes ...gardencorev1beta1.ErrorCode) gardencorev1beta1.Condition {
-	return UpdatedConditionWithClock(clock, condition, gardencorev1beta1.ConditionUnknown, gardencorev1beta1.ConditionCheckError, message, codes...)
-}
-
-// BuildConditions builds and returns the conditions using the given conditions as a base,
-// by first removing all conditions with the given types and then merging the given new conditions (which must be of the same types).
-func BuildConditions(baseConditions, newConditions []gardencorev1beta1.Condition, removeConditionTypes []gardencorev1beta1.ConditionType) []gardencorev1beta1.Condition {
-	result := RemoveConditions(baseConditions, removeConditionTypes...)
-	result = MergeConditions(result, newConditions...)
-	return result
-}
-
-// MergeConditions merges the given <oldConditions> with the <newConditions>. Existing conditions are superseded by
-// the <newConditions> (depending on the condition type).
-func MergeConditions(oldConditions []gardencorev1beta1.Condition, newConditions ...gardencorev1beta1.Condition) []gardencorev1beta1.Condition {
-	var (
-		out         = make([]gardencorev1beta1.Condition, 0, len(oldConditions))
-		typeToIndex = make(map[gardencorev1beta1.ConditionType]int, len(oldConditions))
-	)
-
-	for i, condition := range oldConditions {
-		out = append(out, condition)
-		typeToIndex[condition.Type] = i
-	}
-
-	for _, condition := range newConditions {
-		if index, ok := typeToIndex[condition.Type]; ok {
-			out[index] = condition
-			continue
-		}
-		out = append(out, condition)
-	}
-
-	return out
-}
-
-// RemoveConditions removes the conditions with the given types from the given conditions slice.
-func RemoveConditions(conditions []gardencorev1beta1.Condition, conditionTypes ...gardencorev1beta1.ConditionType) []gardencorev1beta1.Condition {
-	conditionTypesMap := make(map[gardencorev1beta1.ConditionType]struct{}, len(conditionTypes))
-	for _, conditionType := range conditionTypes {
-		conditionTypesMap[conditionType] = struct{}{}
-	}
-
-	var newConditions []gardencorev1beta1.Condition
-	for _, condition := range conditions {
-		if _, ok := conditionTypesMap[condition.Type]; !ok {
-			newConditions = append(newConditions, condition)
-		}
-	}
-
-	return newConditions
-}
-
-// ConditionsNeedUpdate returns true if the <existingConditions> must be updated based on <newConditions>.
-func ConditionsNeedUpdate(existingConditions, newConditions []gardencorev1beta1.Condition) bool {
-	return existingConditions == nil || !apiequality.Semantic.DeepEqual(newConditions, existingConditions)
-}
-
-// IsResourceSupported returns true if a given combination of kind/type is part of a controller resources list.
-func IsResourceSupported(resources []gardencorev1beta1.ControllerResource, resourceKind, resourceType string) bool {
-	for _, resource := range resources {
-		if resource.Kind == resourceKind && strings.EqualFold(resource.Type, resourceType) {
-			return true
-		}
-	}
-
-	return false
-}
 
 // IsControllerInstallationSuccessful returns true if a ControllerInstallation has been marked as "successfully"
 // installed.
@@ -483,6 +356,21 @@ func ShootUsesUnmanagedDNS(shoot *gardencorev1beta1.Shoot) bool {
 	return shoot.Spec.DNS != nil && len(shoot.Spec.DNS.Providers) > 0 && shoot.Spec.DNS.Providers[0].Type != nil && *shoot.Spec.DNS.Providers[0].Type == "unmanaged"
 }
 
+// ShootNeedsForceDeletion determines whether a Shoot should be force deleted or not.
+func ShootNeedsForceDeletion(shoot *gardencorev1beta1.Shoot) bool {
+	if shoot == nil {
+		return false
+	}
+
+	value, ok := shoot.Annotations[v1beta1constants.AnnotationConfirmationForceDeletion]
+	if !ok {
+		return false
+	}
+
+	forceDelete, _ := strconv.ParseBool(value)
+	return forceDelete
+}
+
 // ShootSchedulingProfile returns the scheduling profile of the given Shoot.
 func ShootSchedulingProfile(shoot *gardencorev1beta1.Shoot) *gardencorev1beta1.SchedulingProfile {
 	if shoot.Spec.Kubernetes.KubeScheduler != nil {
@@ -494,6 +382,11 @@ func ShootSchedulingProfile(shoot *gardencorev1beta1.Shoot) *gardencorev1beta1.S
 // ShootConfinesSpecUpdateRollout returns a bool.
 func ShootConfinesSpecUpdateRollout(maintenance *gardencorev1beta1.Maintenance) bool {
 	return maintenance != nil && maintenance.ConfineSpecUpdateRollout != nil && *maintenance.ConfineSpecUpdateRollout
+}
+
+// SeedSettingExcessCapacityReservationEnabled returns true if the 'excess capacity reservation' setting is enabled.
+func SeedSettingExcessCapacityReservationEnabled(settings *gardencorev1beta1.SeedSettings) bool {
+	return settings == nil || settings.ExcessCapacityReservation == nil || pointer.BoolDeref(settings.ExcessCapacityReservation.Enabled, true)
 }
 
 // SeedSettingVerticalPodAutoscalerEnabled returns true if the 'verticalPodAutoscaler' setting is enabled.
@@ -649,24 +542,6 @@ func WrapWithLastError(err error, lastError *gardencorev1beta1.LastError) error 
 	return fmt.Errorf("last error: %w: %s", err, lastError.Description)
 }
 
-// IsAPIServerExposureManaged returns true, if the Object is managed by Gardener for API server exposure.
-// This indicates to extensions that they should not mutate the object.
-// Gardener marks the kube-apiserver Service and Deployment as managed by it when it uses SNI to expose them.
-// Deprecated: This function is deprecated and will be removed after Gardener v1.80 has been released.
-// TODO(rfranzke): Drop this after v1.80 has been released.
-func IsAPIServerExposureManaged(obj metav1.Object) bool {
-	if obj == nil {
-		return false
-	}
-
-	if v, found := obj.GetLabels()[v1beta1constants.LabelAPIServerExposure]; found &&
-		v == v1beta1constants.LabelAPIServerExposureGardenerManaged {
-		return true
-	}
-
-	return false
-}
-
 // FindPrimaryDNSProvider finds the primary provider among the given `providers`.
 // It returns the first provider if multiple candidates are found.
 func FindPrimaryDNSProvider(providers []gardencorev1beta1.DNSProvider) *gardencorev1beta1.DNSProvider {
@@ -793,12 +668,7 @@ func FilterDifferentMajorMinorVersion(currentSemVerVersion semver.Version) Versi
 // returns true if v does not have a consecutive minor version
 func FilterNonConsecutiveMinorVersion(currentSemVerVersion semver.Version) VersionPredicate {
 	return func(_ gardencorev1beta1.ExpirableVersion, v *semver.Version) (bool, error) {
-		isWithinRange, err := versionutils.CompareVersions(v.String(), "^", currentSemVerVersion.String())
-		if err != nil {
-			return true, err
-		}
-
-		if !isWithinRange {
+		if v.Major() != currentSemVerVersion.Major() {
 			return true, nil
 		}
 
@@ -1134,17 +1004,8 @@ func IsCoreDNSRewritingEnabled(featureGate bool, annotations map[string]string) 
 }
 
 // IsNodeLocalDNSEnabled indicates whether the node local DNS cache is enabled or not.
-// It can be enabled via the annotation (legacy) or via the shoot specification.
-func IsNodeLocalDNSEnabled(systemComponents *gardencorev1beta1.SystemComponents, annotations map[string]string) bool {
-	fromSpec := false
-	if systemComponents != nil && systemComponents.NodeLocalDNS != nil {
-		fromSpec = systemComponents.NodeLocalDNS.Enabled
-	}
-	fromAnnotation := false
-	if annotationValue, err := strconv.ParseBool(annotations[v1beta1constants.AnnotationNodeLocalDNS]); err == nil {
-		fromAnnotation = annotationValue
-	}
-	return fromSpec || fromAnnotation
+func IsNodeLocalDNSEnabled(systemComponents *gardencorev1beta1.SystemComponents) bool {
+	return systemComponents != nil && systemComponents.NodeLocalDNS != nil && systemComponents.NodeLocalDNS.Enabled
 }
 
 // GetNodeLocalDNS returns a pointer to the NodeLocalDNS spec.
@@ -1255,7 +1116,7 @@ func IsShootSSHKeypairRotationInitiationTimeAfterLastCompletionTime(credentials 
 
 // MutateObservabilityRotation mutates the .status.credentials.rotation.observability field based on the provided
 // mutation function. If the field is nil then it is initialized.
-func MutateObservabilityRotation(shoot *gardencorev1beta1.Shoot, f func(*gardencorev1beta1.ShootObservabilityRotation)) {
+func MutateObservabilityRotation(shoot *gardencorev1beta1.Shoot, f func(*gardencorev1beta1.ObservabilityRotation)) {
 	if f == nil {
 		return
 	}
@@ -1267,7 +1128,7 @@ func MutateObservabilityRotation(shoot *gardencorev1beta1.Shoot, f func(*gardenc
 		shoot.Status.Credentials.Rotation = &gardencorev1beta1.ShootCredentialsRotation{}
 	}
 	if shoot.Status.Credentials.Rotation.Observability == nil {
-		shoot.Status.Credentials.Rotation.Observability = &gardencorev1beta1.ShootObservabilityRotation{}
+		shoot.Status.Credentials.Rotation.Observability = &gardencorev1beta1.ObservabilityRotation{}
 	}
 
 	f(shoot.Status.Credentials.Rotation.Observability)

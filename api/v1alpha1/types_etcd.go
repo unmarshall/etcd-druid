@@ -20,6 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 )
 
@@ -43,7 +44,7 @@ const (
 	ZlibCompression CompressionPolicy = "zlib"
 
 	// DefaultCompression is constant for default compression policy(only if compression is enabled).
-	DefaultCompression CompressionPolicy = GzipCompression
+	DefaultCompression = GzipCompression
 	// DefaultCompressionEnabled is constant to define whether to compress the snapshots or not.
 	DefaultCompressionEnabled = false
 
@@ -422,6 +423,14 @@ type EtcdStatus struct {
 	PeerUrlTLSEnabled *bool `json:"peerUrlTLSEnabled,omitempty"`
 }
 
+// GetNamespaceName is a convenience function which creates a types.NamespacedName for an etcd resource.
+func (e *Etcd) GetNamespaceName() types.NamespacedName {
+	return types.NamespacedName{
+		Namespace: e.Namespace,
+		Name:      e.Name,
+	}
+}
+
 // GetPeerServiceName returns the peer service name for the Etcd cluster reachable by members within the Etcd cluster.
 func (e *Etcd) GetPeerServiceName() string {
 	return fmt.Sprintf("%s-peer", e.Name)
@@ -437,8 +446,8 @@ func (e *Etcd) GetServiceAccountName() string {
 	return e.Name
 }
 
-// GetConfigmapName returns the name of the configmap for the Etcd.
-func (e *Etcd) GetConfigmapName() string {
+// GetConfigMapName returns the name of the configmap for the Etcd.
+func (e *Etcd) GetConfigMapName() string {
 	return fmt.Sprintf("etcd-bootstrap-%s", string(e.UID[:6]))
 }
 
@@ -460,6 +469,16 @@ func (e *Etcd) GetDeltaSnapshotLeaseName() string {
 // GetFullSnapshotLeaseName returns the name of the full snapshot lease for the Etcd.
 func (e *Etcd) GetFullSnapshotLeaseName() string {
 	return fmt.Sprintf("%s-full-snap", e.Name)
+}
+
+// GetMemberLeaseNames returns the name of member leases for the Etcd.
+func (e *Etcd) GetMemberLeaseNames() []string {
+	numReplicas := int(e.Spec.Replicas)
+	leaseNames := make([]string, 0, numReplicas)
+	for i := 0; i < numReplicas; i++ {
+		leaseNames = append(leaseNames, fmt.Sprintf("%s-%d", e.Name, i))
+	}
+	return leaseNames
 }
 
 // GetDefaultLabels returns the default labels for etcd.
@@ -490,4 +509,9 @@ func (e *Etcd) GetRoleName() string {
 // GetRoleBindingName returns the rolebinding name for the Etcd
 func (e *Etcd) GetRoleBindingName() string {
 	return fmt.Sprintf("%s:etcd:%s", GroupVersion.Group, e.Name)
+}
+
+// IsBackupEnabled returns true if backup has been enabled for this etcd, else returns false.
+func (e *Etcd) IsBackupEnabled() bool {
+	return e.Spec.Backup.Store != nil
 }
