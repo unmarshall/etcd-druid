@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/gardener/etcd-druid/controllers/etcd"
-	"github.com/gardener/etcd-druid/pkg/features"
+	"github.com/gardener/etcd-druid/internal/features"
 	"github.com/gardener/etcd-druid/test/integration/controllers/assets"
 	"github.com/gardener/etcd-druid/test/integration/setup"
 	. "github.com/onsi/ginkgo/v2"

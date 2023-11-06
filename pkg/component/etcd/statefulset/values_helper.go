@@ -19,7 +19,7 @@ import (
 	"strings"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/pkg/utils"
+	utils2 "github.com/gardener/etcd-druid/internal/utils"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/utils/pointer"
 )
@@ -61,7 +61,7 @@ func GenerateValues(
 		OwnerReference:            etcd.GetAsOwnerReference(),
 		Replicas:                  etcd.Spec.Replicas,
 		StatusReplicas:            etcd.Status.Replicas,
-		Annotations:               utils.MergeStringMaps(checksumAnnotations, etcd.Spec.Annotations),
+		Annotations:               utils2.MergeStringMaps(checksumAnnotations, etcd.Spec.Annotations),
 		Labels:                    etcd.GetDefaultLabels(),
 		AdditionalPodLabels:       etcd.Spec.Labels,
 		EtcdImage:                 etcdImage,
@@ -118,7 +118,7 @@ func GenerateValues(
 
 		AutoCompactionMode:      etcd.Spec.Common.AutoCompactionMode,
 		AutoCompactionRetention: etcd.Spec.Common.AutoCompactionRetention,
-		ConfigMapName:           etcd.GetConfigmapName(),
+		ConfigMapName:           etcd.GetConfigMapName(),
 		PeerTLSChangedToEnabled: peerTLSChangedToEnabled,
 
 		UseEtcdWrapper: useEtcdWrapper,
@@ -239,7 +239,7 @@ func getBackupRestoreCommandArgs(val Values) ([]string, error) {
 	command = append(command, "--restoration-temp-snapshots-dir=/var/etcd/data/restoration.temp")
 
 	if val.BackupStore != nil {
-		store, err := utils.StorageProviderFromInfraProvider(val.BackupStore.Provider)
+		store, err := utils2.StorageProviderFromInfraProvider(val.BackupStore.Provider)
 		if err != nil {
 			return nil, err
 		}

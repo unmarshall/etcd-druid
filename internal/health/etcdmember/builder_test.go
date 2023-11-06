@@ -17,6 +17,7 @@ package etcdmember_test
 import (
 	"time"
 
+	. "github.com/gardener/etcd-druid/internal/health/etcdmember"
 	"k8s.io/utils/pointer"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -25,7 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	. "github.com/gardener/etcd-druid/pkg/health/etcdmember"
 )
 
 var _ = Describe("Builder", func() {

@@ -19,39 +19,39 @@ import (
 	"sync"
 	"time"
 
+	condition2 "github.com/gardener/etcd-druid/internal/health/condition"
+	etcdmember2 "github.com/gardener/etcd-druid/internal/health/etcdmember"
 	"github.com/go-logr/logr"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/pkg/health/condition"
-	"github.com/gardener/etcd-druid/pkg/health/etcdmember"
 )
 
 // ConditionCheckFn is a type alias for a function which returns an implementation of `Check`.
-type ConditionCheckFn func(client.Client) condition.Checker
+type ConditionCheckFn func(client.Client) condition2.Checker
 
 // EtcdMemberCheckFn is a type alias for a function which returns an implementation of `Check`.
-type EtcdMemberCheckFn func(client.Client, logr.Logger, time.Duration, time.Duration) etcdmember.Checker
+type EtcdMemberCheckFn func(client.Client, logr.Logger, time.Duration, time.Duration) etcdmember2.Checker
 
 // TimeNow is the function used to get the current time.
 var TimeNow = time.Now
 
 var (
 	// NewDefaultConditionBuilder is the default condition builder.
-	NewDefaultConditionBuilder = condition.NewBuilder
+	NewDefaultConditionBuilder = condition2.NewBuilder
 	// NewDefaultEtcdMemberBuilder is the default etcd member builder.
-	NewDefaultEtcdMemberBuilder = etcdmember.NewBuilder
+	NewDefaultEtcdMemberBuilder = etcdmember2.NewBuilder
 	// ConditionChecks Checks are the registered condition checks.
 	ConditionChecks = []ConditionCheckFn{
-		condition.AllMembersCheck,
-		condition.ReadyCheck,
-		condition.BackupReadyCheck,
+		condition2.AllMembersCheck,
+		condition2.ReadyCheck,
+		condition2.BackupReadyCheck,
 	}
 	// EtcdMemberChecks are the etcd member checks.
 	EtcdMemberChecks = []EtcdMemberCheckFn{
-		etcdmember.ReadyCheck,
+		etcdmember2.ReadyCheck,
 	}
 )
 
@@ -61,9 +61,9 @@ type Checker struct {
 	etcdMemberNotReadyThreshold time.Duration
 	etcdMemberUnknownThreshold  time.Duration
 	conditionCheckFns           []ConditionCheckFn
-	conditionBuilderFn          func() condition.Builder
+	conditionBuilderFn          func() condition2.Builder
 	etcdMemberCheckFns          []EtcdMemberCheckFn
-	etcdMemberBuilderFn         func() etcdmember.Builder
+	etcdMemberBuilderFn         func() etcdmember2.Builder
 }
 
 // Check executes the status checks and mutates the passed status object with the corresponding results.
@@ -80,7 +80,7 @@ func (c *Checker) Check(ctx context.Context, logger logr.Logger, etcd *druidv1al
 // executeConditionChecks runs all registered condition checks **in parallel**.
 func (c *Checker) executeConditionChecks(ctx context.Context, etcd *druidv1alpha1.Etcd) error {
 	var (
-		resultCh = make(chan condition.Result)
+		resultCh = make(chan condition2.Result)
 
 		wg sync.WaitGroup
 	)
@@ -100,7 +100,7 @@ func (c *Checker) executeConditionChecks(ctx context.Context, etcd *druidv1alpha
 		wg.Wait()
 	})()
 
-	results := make([]condition.Result, 0, len(ConditionChecks))
+	results := make([]condition2.Result, 0, len(ConditionChecks))
 	for r := range resultCh {
 		results = append(results, r)
 	}

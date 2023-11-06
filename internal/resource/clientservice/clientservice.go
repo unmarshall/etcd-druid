@@ -2,8 +2,9 @@ package clientservice
 
 import (
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
+	druiderr "github.com/gardener/etcd-druid/internal/errors"
 	"github.com/gardener/etcd-druid/internal/resource"
-	"github.com/gardener/etcd-druid/pkg/utils"
+	"github.com/gardener/etcd-druid/internal/utils"
 	"github.com/gardener/gardener/pkg/controllerutils"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -13,10 +14,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// default values
 const (
 	defaultBackupPort = 8080
 	defaultClientPort = 2379
 	defaultServerPort = 2380
+)
+
+const (
+	ErrDeletingClientService druidv1alpha1.ErrorCode = "ERR_DELETING_CLIENT_SERVICE"
+	ErrSyncingClientService  druidv1alpha1.ErrorCode = "ERR_SYNC_CLIENT_SERVICE"
 )
 
 type _resource struct {
@@ -50,13 +57,23 @@ func (r _resource) Sync(ctx resource.OperatorContext, etcd *druidv1alpha1.Etcd) 
 
 		return nil
 	})
-	return err
+	return druiderr.WrapError(err,
+		ErrSyncingClientService,
+		"Sync",
+		"Error during create or update of client service",
+	)
 }
 
 func (r _resource) TriggerDelete(ctx resource.OperatorContext, etcd *druidv1alpha1.Etcd) error {
 	objectKey := getObjectKey(etcd)
 	r.logger.Info("Triggering delete of client service", "objectKey", objectKey)
-	return client.IgnoreNotFound(r.client.Delete(ctx, emptyClientService(objectKey)))
+	err := client.IgnoreNotFound(r.client.Delete(ctx, emptyClientService(objectKey)))
+	return druiderr.WrapError(
+		err,
+		ErrDeletingClientService,
+		"TriggerDelete",
+		"Failed to delete client service",
+	)
 }
 
 func New(client client.Client, logger logr.Logger) resource.Operator {

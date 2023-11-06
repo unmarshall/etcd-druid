@@ -20,8 +20,8 @@ import (
 )
 
 // GenerateValues generates `role.Values` for the role component with the given `etcd` object.
-func GenerateValues(etcd *druidv1alpha1.Etcd) *Values {
-	return &Values{
+func GenerateValues(etcd *druidv1alpha1.Etcd) Values {
+	return Values{
 		Name:           etcd.GetRoleName(),
 		Namespace:      etcd.Namespace,
 		Labels:         etcd.GetDefaultLabels(),

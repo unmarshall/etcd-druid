@@ -18,7 +18,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/gardener/etcd-druid/pkg/common"
+	"github.com/gardener/etcd-druid/internal/common"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/go-logr/logr"
 	coordinationv1 "k8s.io/api/coordination/v1"

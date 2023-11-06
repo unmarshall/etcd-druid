@@ -1,11 +1,12 @@
 package etcd
 
 import (
+	"time"
+
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"time"
 )
 
 const controllerName = "etcd-controller"

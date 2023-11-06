@@ -388,8 +388,14 @@ type EtcdStatus struct {
 	// +optional
 	ServiceName *string `json:"serviceName,omitempty"`
 	// LastError represents the last occurred error.
+	// Deprecated: Use LastErrors instead.
 	// +optional
 	LastError *string `json:"lastError,omitempty"`
+	// LastErrors captures errors that occurred during the last operation.
+	// +optional
+	LastErrors []LastError
+	// LastOperation indicates the last operation performed on this resource.
+	LastOperation *LastOperation
 	// Cluster size is the current size of the etcd cluster.
 	// Deprecated: this field will not be populated with any value and will be removed in the future.
 	// +optional
@@ -421,6 +427,54 @@ type EtcdStatus struct {
 	// PeerUrlTLSEnabled captures the state of peer url TLS being enabled for the etcd member(s)
 	// +optional
 	PeerUrlTLSEnabled *bool `json:"peerUrlTLSEnabled,omitempty"`
+}
+
+// LastOperationType is a string alias representing type of the last operation.
+type LastOperationType string
+
+const (
+	// LastOperationTypeCreate indicates that the last operation was a creation of a new etcd resource.
+	LastOperationTypeCreate LastOperationType = "Create"
+	// LastOperationTypeReconcile indicates that the last operation was a reconciliation of the spec of an etcd resource.
+	LastOperationTypeReconcile LastOperationType = "Reconcile"
+	// LastOperationTypeDelete indicates that the last operation was a deletion of an existing etcd resource.
+	LastOperationTypeDelete LastOperationType = "Delete"
+)
+
+// LastOperationState is a string alias representing the state of the last operation.
+type LastOperationState string
+
+const (
+	// LastOperationStateProcessing indicates that an operation is in progress.
+	LastOperationStateProcessing LastOperationState = "Processing"
+	// LastOperationStateSucceeded indicates that an operation has completed successfully.
+	LastOperationStateSucceeded LastOperationState = "Succeeded"
+	// LastOperationStateError indicates that an operation is completed with errors and will be retried.
+	LastOperationStateError LastOperationState = "Error"
+)
+
+// LastOperation holds the information on the last operation done on this resource.
+type LastOperation struct {
+	// Type is the type of last operation.
+	Type LastOperationType `json:"type"`
+	// State is the state of the last operation.
+	State LastOperationState `json:"state"`
+	// Description describes the last operation.
+	Description string `json:"description"`
+	// LastUpdateTime is the time at which the operation was updated.
+	LastUpdateTime metav1.Time `json:"lastUpdateTime"`
+}
+
+// ErrorCode is a string alias representing an error code that identifies an error.
+type ErrorCode string
+
+type LastError struct {
+	// Code is an error code that uniquely identifies an error.
+	Code ErrorCode
+	// Description is a human-readable message indicating details of the error.
+	Description string
+	// LastUpdateTime is the time the error was reported.
+	LastUpdateTime metav1.Time
 }
 
 // GetNamespaceName is a convenience function which creates a types.NamespacedName for an etcd resource.
@@ -514,4 +568,9 @@ func (e *Etcd) GetRoleBindingName() string {
 // IsBackupEnabled returns true if backup has been enabled for this etcd, else returns false.
 func (e *Etcd) IsBackupEnabled() bool {
 	return e.Spec.Backup.Store != nil
+}
+
+// IsMarkedForDeletion returns true if a deletion timestamp has been set and false otherwise.
+func (e *Etcd) IsMarkedForDeletion() bool {
+	return !e.DeletionTimestamp.IsZero()
 }

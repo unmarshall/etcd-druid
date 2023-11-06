@@ -19,8 +19,8 @@ import (
 	"fmt"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/pkg/client/kubernetes"
-	"github.com/gardener/etcd-druid/pkg/common"
+	"github.com/gardener/etcd-druid/internal/client/kubernetes"
+	"github.com/gardener/etcd-druid/internal/common"
 	"github.com/gardener/gardener/pkg/controllerutils"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"

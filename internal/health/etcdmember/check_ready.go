@@ -19,6 +19,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gardener/etcd-druid/internal/common"
+	"github.com/gardener/etcd-druid/internal/utils"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
@@ -29,8 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/pkg/common"
-	"github.com/gardener/etcd-druid/pkg/utils"
 )
 
 type readyCheck struct {

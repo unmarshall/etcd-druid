@@ -21,12 +21,13 @@ import (
 )
 
 type Reconciler struct {
-	client           client.Client
-	config           *Config
-	recorder         record.EventRecorder
-	imageVector      imagevector.ImageVector
-	operatorRegistry resource.OperatorRegistry
-	logger           logr.Logger
+	client            client.Client
+	config            *Config
+	recorder          record.EventRecorder
+	imageVector       imagevector.ImageVector
+	operatorRegistry  resource.OperatorRegistry
+	lastOpErrRecorder ctrlutils.LastOperationErrorRecorder
+	logger            logr.Logger
 }
 
 // NewReconciler creates a new reconciler for Etcd.
@@ -42,25 +43,27 @@ func NewReconciler(mgr manager.Manager, config *Config) (*Reconciler, error) {
 			DisableEtcdServiceAccountAutomount: config.DisableEtcdServiceAccountAutomount,
 		},
 	)
+	lastOpErrRecorder := ctrlutils.NewLastOperationErrorRecorder(mgr.GetClient(), logger)
 	return &Reconciler{
-		client:           mgr.GetClient(),
-		config:           config,
-		recorder:         mgr.GetEventRecorderFor(controllerName),
-		imageVector:      imageVector,
-		logger:           logger,
-		operatorRegistry: operatorReg,
+		client:            mgr.GetClient(),
+		config:            config,
+		recorder:          mgr.GetEventRecorderFor(controllerName),
+		imageVector:       imageVector,
+		logger:            logger,
+		operatorRegistry:  operatorReg,
+		lastOpErrRecorder: lastOpErrRecorder,
 	}, nil
 }
 
 // TODO: where/how is this being used?
 // +kubebuilder:rbac:groups=druid.gardener.cloud,resources=etcds,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=druid.gardener.cloud,resources=etcds/status,verbs=get;create;update;patch
-// +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;create;update;patch;delete
-// +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=serviceaccounts;services;configmaps,verbs=get;list;create;update;patch;delete
-// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;create;update;patch;delete
-// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;create;update;patch;delete
-// +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;create;update;patch;delete
+// +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;create;update;patch;triggerDeletionFlow
+// +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;create;update;patch;triggerDeletionFlow
+// +kubebuilder:rbac:groups="",resources=serviceaccounts;services;configmaps,verbs=get;list;create;update;patch;triggerDeletionFlow
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;create;update;patch;triggerDeletionFlow
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;create;update;patch;triggerDeletionFlow
+// +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;create;update;patch;triggerDeletionFlow
 // +kubebuilder:rbac:groups=apps,resources=statefulsets/status,verbs=get;watch
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;get;list
@@ -68,7 +71,7 @@ func NewReconciler(mgr manager.Manager, config *Config) (*Reconciler, error) {
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	/*
 		If deletionTimestamp set:
-			delete(); if err then requeue
+			triggerDeletionFlow(); if err then requeue
 		Else:
 			If ignore-reconciliation is set to true:
 				skip reconcileSpec()
@@ -81,9 +84,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		reconcileStatus()
 		requeue after minimum of X seconds (EtcdStatusSyncPeriod) and previously recorded requeue request
 	*/
-
-	r.logger.WithValues("Etcd", req.NamespacedName)
-	r.logger.Info("Etcd-controller reconciliation started")
+	rLog := r.logger.WithValues("etcd", req.NamespacedName)
+	rLog.Info("etcd-controller reconciliation started")
 
 	etcd := &druidv1alpha1.Etcd{}
 	if err := r.client.Get(ctx, req.NamespacedName, etcd); err != nil {
@@ -93,11 +95,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	if !etcd.DeletionTimestamp.IsZero() {
-		if err := r.delete(ctx, etcd); err != nil {
-			return ctrl.Result{Requeue: true}, err
-		}
+	if etcd.IsMarkedForDeletion() {
+		dLog := rLog.WithValues("operation", "delete")
+		return r.triggerDeletionFlow(ctx, dLog, etcd)
 	}
+
+	//if !etcd.DeletionTimestamp.IsZero() {
+	//	if err := r.triggerDeletionFlow(ctx, etcd); err != nil {
+	//		return ctrl.Result{Requeue: true}, err
+	//	}
+	//}
 
 	if metav1.HasAnnotation(etcd.ObjectMeta, IgnoreReconciliationAnnotation) {
 		r.recorder.Eventf(
@@ -145,35 +152,16 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, etcdNamespacedName typ
 
 }
 
-//	func (r *Reconciler) delete(ctx context.Context, etcd *druidv1alpha1.Etcd) error {
-//		err := r.deleteEtcdResources(ctx, etcd)
-//		if err != nil {
-//			return err
-//		}
-//
-//		if ctrlutils.ContainsFinalizer(etcd, common.FinalizerName) {
-//
-//		}
-//		if sets.NewString(etcd.Finalizers...).Has(common.FinalizerName) {
-//			logger.Info("Removing finalizer", "namespace", etcd.Namespace, "name", etcd.Name, "finalizerName", common.FinalizerName)
-//			if err := controllerutils.RemoveFinalizers(ctx, r.Client, etcd, common.FinalizerName); client.IgnoreNotFound(err) != nil {
-//				return ctrl.Result{
-//					Requeue: true,
-//				}, err
-//			}
-//		}
-//		/*
-//			components [];
-//			for component in components:
-//				get component
-//				if component exists:
-//					delete component; if error then requeue
-//				if component does not exist, then record skip
-//			if all components have been recorded as non-existent, then remove finalizer and exit
-//		*/
-//
-//		return nil
-//	}
+func (r *Reconciler) getLatestEtcd(ctx context.Context, objectKey client.ObjectKey, etcd *druidv1alpha1.Etcd) ctrlutils.ReconcileStepResult {
+	if err := r.client.Get(ctx, objectKey, etcd); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrlutils.DoNotRequeue()
+		}
+		return ctrlutils.ReconcileWithError(err)
+	}
+	return ctrlutils.ContinueReconcile()
+}
+
 func (r *Reconciler) handleReconcilePause(etcd *druidv1alpha1.Etcd) ctrlutils.ReconcileActionResult {
 	//TODO: Once no one uses IgnoreReconciliationAnnotation annotation, then we can simplify this code.
 	var annotationKey string

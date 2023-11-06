@@ -20,8 +20,10 @@ import (
 	"path/filepath"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
+	"github.com/gardener/etcd-druid/internal/common"
 	ctrlutils "github.com/gardener/etcd-druid/internal/controller/utils"
-	"github.com/gardener/etcd-druid/pkg/common"
+	"github.com/gardener/etcd-druid/internal/features"
+	"github.com/gardener/etcd-druid/internal/utils"
 	componentconfigmap "github.com/gardener/etcd-druid/pkg/component/etcd/configmap"
 	componentlease "github.com/gardener/etcd-druid/pkg/component/etcd/lease"
 	componentpdb "github.com/gardener/etcd-druid/pkg/component/etcd/poddisruptionbudget"
@@ -30,9 +32,6 @@ import (
 	componentservice "github.com/gardener/etcd-druid/pkg/component/etcd/service"
 	componentserviceaccount "github.com/gardener/etcd-druid/pkg/component/etcd/serviceaccount"
 	componentsts "github.com/gardener/etcd-druid/pkg/component/etcd/statefulset"
-	"github.com/gardener/etcd-druid/pkg/features"
-	druidutils "github.com/gardener/etcd-druid/pkg/utils"
-
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	gardenercomponent "github.com/gardener/gardener/pkg/component"
 	"github.com/gardener/gardener/pkg/controllerutils"
@@ -301,7 +300,7 @@ func (r *Reconciler) reconcileEtcd(ctx context.Context, logger logr.Logger, etcd
 		return reconcileResult{err: fmt.Errorf("Spec.Replicas should not be even number: %d", etcd.Spec.Replicas)}
 	}
 
-	etcdImage, etcdBackupImage, err := druidutils.GetEtcdImages(etcd, r.imageVector, r.config.FeatureGates[features.UseEtcdWrapper])
+	etcdImage, etcdBackupImage, err := utils.GetEtcdImages(etcd, r.imageVector, r.config.FeatureGates[features.UseEtcdWrapper])
 	if err != nil {
 		return reconcileResult{err: err}
 	}
@@ -325,7 +324,7 @@ func (r *Reconciler) reconcileEtcd(ctx context.Context, logger logr.Logger, etcd
 	}
 
 	pdbValues := componentpdb.GenerateValues(etcd)
-	pdbDeployer := componentpdb.New(r.Client, etcd.Namespace, &pdbValues)
+	pdbDeployer := componentpdb.New(r.Client, etcd.Namespace, pdbValues)
 	if err := pdbDeployer.Deploy(ctx); err != nil {
 		return reconcileResult{err: err}
 	}
@@ -351,7 +350,7 @@ func (r *Reconciler) reconcileEtcd(ctx context.Context, logger logr.Logger, etcd
 		return reconcileResult{err: err}
 	}
 
-	peerTLSEnabled, err := druidutils.IsPeerURLTLSEnabled(ctx, r.Client, etcd.Namespace, etcd.Name, logger)
+	peerTLSEnabled, err := utils.IsPeerURLTLSEnabled(ctx, r.Client, etcd.Namespace, etcd.Name, logger)
 	if err != nil {
 		return reconcileResult{err: err}
 	}
@@ -399,7 +398,7 @@ func (r *Reconciler) updateEtcdErrorStatus(ctx context.Context, etcd *druidv1alp
 	etcd.Status.LastError = &lastErrStr
 	etcd.Status.ObservedGeneration = &etcd.Generation
 	if result.sts != nil {
-		ready, _ := druidutils.IsStatefulSetReady(etcd.Spec.Replicas, result.sts)
+		ready, _ := utils.IsStatefulSetReady(etcd.Spec.Replicas, result.sts)
 		etcd.Status.Ready = &ready
 		etcd.Status.Replicas = pointer.Int32Deref(result.sts.Spec.Replicas, 0)
 	}
@@ -409,7 +408,7 @@ func (r *Reconciler) updateEtcdErrorStatus(ctx context.Context, etcd *druidv1alp
 
 func (r *Reconciler) updateEtcdStatus(ctx context.Context, etcd *druidv1alpha1.Etcd, result reconcileResult) error {
 	if result.sts != nil {
-		ready, _ := druidutils.IsStatefulSetReady(etcd.Spec.Replicas, result.sts)
+		ready, _ := utils.IsStatefulSetReady(etcd.Spec.Replicas, result.sts)
 		etcd.Status.Ready = &ready
 		etcd.Status.Replicas = pointer.Int32Deref(result.sts.Spec.Replicas, 0)
 	}

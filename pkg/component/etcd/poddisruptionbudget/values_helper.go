@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/pkg/common"
+	"github.com/gardener/etcd-druid/internal/common"
 )
 
 // GenerateValues generates `poddisruptionbudget.Values` for the lease component with the given parameters.

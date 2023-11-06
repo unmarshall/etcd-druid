@@ -18,8 +18,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gardener/etcd-druid/pkg/utils"
-
+	"github.com/gardener/etcd-druid/internal/utils"
 	"github.com/gardener/gardener/pkg/controllerutils"
 	"github.com/gardener/gardener/pkg/utils/flow"
 	coordinationv1 "k8s.io/api/coordination/v1"

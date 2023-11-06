@@ -24,10 +24,10 @@ import (
 )
 
 // GenerateValues generates `configmap.Values` for the configmap component with the given parameters.
-func GenerateValues(etcd *druidv1alpha1.Etcd) *Values {
+func GenerateValues(etcd *druidv1alpha1.Etcd) Values {
 	initialCluster := prepareInitialCluster(etcd)
-	values := &Values{
-		Name:                    etcd.GetConfigmapName(),
+	values := Values{
+		Name:                    etcd.GetConfigMapName(),
 		EtcdUID:                 etcd.UID,
 		Metrics:                 etcd.Spec.Etcd.Metrics,
 		Quota:                   etcd.Spec.Etcd.Quota,

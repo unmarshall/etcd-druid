@@ -22,8 +22,8 @@ import (
 	"time"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/pkg/common"
-	"github.com/gardener/etcd-druid/pkg/utils"
+	"github.com/gardener/etcd-druid/internal/common"
+	utils2 "github.com/gardener/etcd-druid/internal/utils"
 	gardenercomponent "github.com/gardener/gardener/pkg/component"
 	"github.com/gardener/gardener/pkg/controllerutils"
 	"github.com/gardener/gardener/pkg/utils/flow"
@@ -175,7 +175,7 @@ func (c *component) waitDeploy(ctx context.Context, originalSts *appsv1.Stateful
 		if updatedSts.Generation < originalSts.Generation {
 			return gardenerretry.MinorError(fmt.Errorf("statefulset generation has not yet been updated in the cache"))
 		}
-		if ready, reason := utils.IsStatefulSetReady(replicas, &updatedSts); !ready {
+		if ready, reason := utils2.IsStatefulSetReady(replicas, &updatedSts); !ready {
 			return gardenerretry.MinorError(fmt.Errorf(reason))
 		}
 		return gardenerretry.Ok()
@@ -343,7 +343,7 @@ func (c *component) updateAndWait(ctx context.Context, opName string, sts *appsv
 
 func (c *component) waitUntilTLSEnabled(ctx context.Context, timeout time.Duration) error {
 	return gardenerretry.UntilTimeout(ctx, defaultInterval, timeout, func(ctx context.Context) (bool, error) {
-		tlsEnabled, err := utils.IsPeerURLTLSEnabled(ctx, c.client, c.values.Namespace, c.values.Name, c.logger)
+		tlsEnabled, err := utils2.IsPeerURLTLSEnabled(ctx, c.client, c.values.Namespace, c.values.Name, c.logger)
 		if err != nil {
 			return gardenerretry.MinorError(err)
 		}
@@ -419,7 +419,7 @@ func (c *component) createOrPatch(ctx context.Context, sts *appsv1.StatefulSet, 
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: c.values.Annotations,
-					Labels:      utils.MergeStringMaps(make(map[string]string), c.values.AdditionalPodLabels, c.values.Labels),
+					Labels:      utils2.MergeStringMaps(make(map[string]string), c.values.AdditionalPodLabels, c.values.Labels),
 				},
 				Spec: corev1.PodSpec{
 					HostAliases: []corev1.HostAlias{
@@ -510,8 +510,8 @@ func (c *component) createOrPatch(ctx context.Context, sts *appsv1.StatefulSet, 
 			if c.values.BackupStore != nil {
 				// Special container to change permissions of backup bucket folder to 65532 (nonroot)
 				// Only used with local provider
-				prov, _ := utils.StorageProviderFromInfraProvider(c.values.BackupStore.Provider)
-				if prov == utils.Local {
+				prov, _ := utils2.StorageProviderFromInfraProvider(c.values.BackupStore.Provider)
+				if prov == utils2.Local {
 					sts.Spec.Template.Spec.InitContainers = append(sts.Spec.Template.Spec.InitContainers, corev1.Container{
 						Name:         "change-backup-bucket-permissions",
 						Image:        "alpine:3.18.2",
@@ -603,7 +603,7 @@ func getObjectMeta(val *Values, sts *appsv1.StatefulSet, preserveAnnotations boo
 }
 
 func getStsAnnotations(val *Values, sts *appsv1.StatefulSet) map[string]string {
-	annotations := utils.MergeStringMaps(
+	annotations := utils2.MergeStringMaps(
 		map[string]string{
 			common.GardenerOwnedBy:   fmt.Sprintf("%s/%s", val.Namespace, val.Name),
 			common.GardenerOwnerType: "etcd",
@@ -721,13 +721,13 @@ func getBackupRestoreVolumeMounts(c *component) []corev1.VolumeMount {
 		return vms
 	}
 
-	provider, err := utils.StorageProviderFromInfraProvider(c.values.BackupStore.Provider)
+	provider, err := utils2.StorageProviderFromInfraProvider(c.values.BackupStore.Provider)
 	if err != nil {
 		return vms
 	}
 
 	switch provider {
-	case utils.Local:
+	case utils2.Local:
 		if c.values.BackupStore.Container != nil {
 			if c.featureGates["UseEtcdWrapper"] {
 				vms = append(vms, corev1.VolumeMount{
@@ -741,12 +741,12 @@ func getBackupRestoreVolumeMounts(c *component) []corev1.VolumeMount {
 				})
 			}
 		}
-	case utils.GCS:
+	case utils2.GCS:
 		vms = append(vms, corev1.VolumeMount{
 			Name:      "etcd-backup",
 			MountPath: "/var/.gcp/",
 		})
-	case utils.S3, utils.ABS, utils.OSS, utils.Swift, utils.OCS:
+	case utils2.S3, utils2.ABS, utils2.OSS, utils2.Swift, utils2.OCS:
 		vms = append(vms, corev1.VolumeMount{
 			Name:      "etcd-backup",
 			MountPath: "/var/etcd-backup/",
@@ -858,14 +858,14 @@ func getVolumes(ctx context.Context, cl client.Client, logger logr.Logger, val V
 	}
 
 	storeValues := val.BackupStore
-	provider, err := utils.StorageProviderFromInfraProvider(storeValues.Provider)
+	provider, err := utils2.StorageProviderFromInfraProvider(storeValues.Provider)
 	if err != nil {
 		return vs, nil
 	}
 
 	switch provider {
 	case "Local":
-		hostPath, err := utils.GetHostMountPathFromSecretRef(ctx, cl, logger, storeValues, val.Namespace)
+		hostPath, err := utils2.GetHostMountPathFromSecretRef(ctx, cl, logger, storeValues, val.Namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -880,7 +880,7 @@ func getVolumes(ctx context.Context, cl client.Client, logger logr.Logger, val V
 				},
 			},
 		})
-	case utils.GCS, utils.S3, utils.OSS, utils.ABS, utils.Swift, utils.OCS:
+	case utils2.GCS, utils2.S3, utils2.OSS, utils2.ABS, utils2.Swift, utils2.OCS:
 		if storeValues.SecretRef == nil {
 			return nil, fmt.Errorf("no secretRef configured for backup store")
 		}
@@ -918,7 +918,7 @@ func getBackupRestoreEnvVars(val Values) []corev1.EnvVar {
 		return env
 	}
 
-	provider, err := utils.StorageProviderFromInfraProvider(val.BackupStore.Provider)
+	provider, err := utils2.StorageProviderFromInfraProvider(val.BackupStore.Provider)
 	if err != nil {
 		return env
 	}
@@ -926,27 +926,27 @@ func getBackupRestoreEnvVars(val Values) []corev1.EnvVar {
 	// TODO(timuthy): move this to a non root path when we switch to a rootless distribution
 	const credentialsMountPath = "/var/etcd-backup"
 	switch provider {
-	case utils.S3:
+	case utils2.S3:
 		env = append(env, getEnvVarFromValue("AWS_APPLICATION_CREDENTIALS", credentialsMountPath))
 
-	case utils.ABS:
+	case utils2.ABS:
 		env = append(env, getEnvVarFromValue("AZURE_APPLICATION_CREDENTIALS", credentialsMountPath))
 
-	case utils.GCS:
+	case utils2.GCS:
 		env = append(env, getEnvVarFromValue("GOOGLE_APPLICATION_CREDENTIALS", "/var/.gcp/serviceaccount.json"))
 
-	case utils.Swift:
+	case utils2.Swift:
 		env = append(env, getEnvVarFromValue("OPENSTACK_APPLICATION_CREDENTIALS", credentialsMountPath))
 
-	case utils.OSS:
+	case utils2.OSS:
 		env = append(env, getEnvVarFromValue("ALICLOUD_APPLICATION_CREDENTIALS", credentialsMountPath))
 
-	case utils.ECS:
+	case utils2.ECS:
 		env = append(env, getEnvVarFromSecrets("ECS_ENDPOINT", storeValues.SecretRef.Name, "endpoint"))
 		env = append(env, getEnvVarFromSecrets("ECS_ACCESS_KEY_ID", storeValues.SecretRef.Name, "accessKeyID"))
 		env = append(env, getEnvVarFromSecrets("ECS_SECRET_ACCESS_KEY", storeValues.SecretRef.Name, "secretAccessKey"))
 
-	case utils.OCS:
+	case utils2.OCS:
 		env = append(env, getEnvVarFromValue("OPENSHIFT_APPLICATION_CREDENTIALS", credentialsMountPath))
 	}
 

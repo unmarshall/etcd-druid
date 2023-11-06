@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gardener/etcd-druid/internal/controller/utils"
-	"github.com/gardener/etcd-druid/pkg/features"
+	"github.com/gardener/etcd-druid/internal/features"
 	"k8s.io/component-base/featuregate"
 )
 

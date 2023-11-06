@@ -17,15 +17,16 @@ package condition_test
 import (
 	"context"
 
-	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	. "github.com/gardener/etcd-druid/pkg/health/condition"
+	. "github.com/gardener/etcd-druid/internal/health/condition"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 )
 
-var _ = Describe("ReadyCheck", func() {
+var _ = Describe("AllMembersReadyCheck", func() {
 	Describe("#Check", func() {
-		var readyMember, notReadyMember, unknownMember druidv1alpha1.EtcdMemberStatus
+		var readyMember, notReadyMember druidv1alpha1.EtcdMemberStatus
 
 		BeforeEach(func() {
 			readyMember = druidv1alpha1.EtcdMemberStatus{
@@ -34,14 +35,14 @@ var _ = Describe("ReadyCheck", func() {
 			notReadyMember = druidv1alpha1.EtcdMemberStatus{
 				Status: druidv1alpha1.EtcdMemberStatusNotReady,
 			}
-			unknownMember = druidv1alpha1.EtcdMemberStatus{
-				Status: druidv1alpha1.EtcdMemberStatusUnknown,
-			}
 		})
 
 		Context("when members in status", func() {
-			It("should return that the cluster has a quorum (all members ready)", func() {
+			It("should return that all members are ready", func() {
 				etcd := druidv1alpha1.Etcd{
+					Spec: druidv1alpha1.EtcdSpec{
+						Replicas: 3,
+					},
 					Status: druidv1alpha1.EtcdStatus{
 						Members: []druidv1alpha1.EtcdMemberStatus{
 							readyMember,
@@ -50,34 +51,19 @@ var _ = Describe("ReadyCheck", func() {
 						},
 					},
 				}
-				check := ReadyCheck(nil)
+				check := AllMembersCheck(nil)
 
 				result := check.Check(context.TODO(), etcd)
 
-				Expect(result.ConditionType()).To(Equal(druidv1alpha1.ConditionTypeReady))
+				Expect(result.ConditionType()).To(Equal(druidv1alpha1.ConditionTypeAllMembersReady))
 				Expect(result.Status()).To(Equal(druidv1alpha1.ConditionTrue))
 			})
 
-			It("should return that the cluster has a quorum (members are partly unknown)", func() {
+			It("should return that members are not ready", func() {
 				etcd := druidv1alpha1.Etcd{
-					Status: druidv1alpha1.EtcdStatus{
-						Members: []druidv1alpha1.EtcdMemberStatus{
-							readyMember,
-							unknownMember,
-							unknownMember,
-						},
+					Spec: druidv1alpha1.EtcdSpec{
+						Replicas: 3,
 					},
-				}
-				check := ReadyCheck(nil)
-
-				result := check.Check(context.TODO(), etcd)
-
-				Expect(result.ConditionType()).To(Equal(druidv1alpha1.ConditionTypeReady))
-				Expect(result.Status()).To(Equal(druidv1alpha1.ConditionTrue))
-			})
-
-			It("should return that the cluster has a quorum (one member not ready)", func() {
-				etcd := druidv1alpha1.Etcd{
 					Status: druidv1alpha1.EtcdStatus{
 						Members: []druidv1alpha1.EtcdMemberStatus{
 							readyMember,
@@ -86,50 +72,53 @@ var _ = Describe("ReadyCheck", func() {
 						},
 					},
 				}
-				check := ReadyCheck(nil)
+				check := AllMembersCheck(nil)
 
 				result := check.Check(context.TODO(), etcd)
 
-				Expect(result.ConditionType()).To(Equal(druidv1alpha1.ConditionTypeReady))
-				Expect(result.Status()).To(Equal(druidv1alpha1.ConditionTrue))
-			})
-
-			It("should return that the cluster has lost its quorum", func() {
-				etcd := druidv1alpha1.Etcd{
-					Status: druidv1alpha1.EtcdStatus{
-						Members: []druidv1alpha1.EtcdMemberStatus{
-							readyMember,
-							notReadyMember,
-							notReadyMember,
-						},
-					},
-				}
-				check := ReadyCheck(nil)
-
-				result := check.Check(context.TODO(), etcd)
-
-				Expect(result.ConditionType()).To(Equal(druidv1alpha1.ConditionTypeReady))
+				Expect(result.ConditionType()).To(Equal(druidv1alpha1.ConditionTypeAllMembersReady))
 				Expect(result.Status()).To(Equal(druidv1alpha1.ConditionFalse))
-				Expect(result.Reason()).To(Equal("QuorumLost"))
+			})
+
+			It("should return all members are not ready when number of members registered are less than spec replicas", func() {
+				etcd := druidv1alpha1.Etcd{
+					Spec: druidv1alpha1.EtcdSpec{
+						Replicas: 3,
+					},
+					Status: druidv1alpha1.EtcdStatus{
+						Members: []druidv1alpha1.EtcdMemberStatus{
+							readyMember,
+							readyMember,
+						},
+					},
+				}
+				check := AllMembersCheck(nil)
+
+				result := check.Check(context.TODO(), etcd)
+
+				Expect(result.ConditionType()).To(Equal(druidv1alpha1.ConditionTypeAllMembersReady))
+				Expect(result.Status()).To(Equal(druidv1alpha1.ConditionFalse))
+				Expect(result.Reason()).To(Equal("NotAllMembersReady"))
 			})
 		})
 
 		Context("when no members in status", func() {
-			It("should return that quorum is unknown", func() {
+			It("should return that readiness is unknown", func() {
 				etcd := druidv1alpha1.Etcd{
+					Spec: druidv1alpha1.EtcdSpec{
+						Replicas: 3,
+					},
 					Status: druidv1alpha1.EtcdStatus{
 						Members: []druidv1alpha1.EtcdMemberStatus{},
 					},
 				}
-				check := ReadyCheck(nil)
+				check := AllMembersCheck(nil)
 
 				result := check.Check(context.TODO(), etcd)
 
-				Expect(result.ConditionType()).To(Equal(druidv1alpha1.ConditionTypeReady))
+				Expect(result.ConditionType()).To(Equal(druidv1alpha1.ConditionTypeAllMembersReady))
 				Expect(result.Status()).To(Equal(druidv1alpha1.ConditionUnknown))
-				Expect(result.Reason()).To(Equal("NoMembersInStatus"))
 			})
 		})
 	})
-
 })

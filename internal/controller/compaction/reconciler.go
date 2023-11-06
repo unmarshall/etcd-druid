@@ -22,9 +22,9 @@ import (
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	ctrlutils "github.com/gardener/etcd-druid/internal/controller/utils"
-	"github.com/gardener/etcd-druid/pkg/features"
-	druidmetrics "github.com/gardener/etcd-druid/pkg/metrics"
-	"github.com/gardener/etcd-druid/pkg/utils"
+	"github.com/gardener/etcd-druid/internal/features"
+	druidmetrics "github.com/gardener/etcd-druid/internal/metrics"
+	utils2 "github.com/gardener/etcd-druid/internal/utils"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
@@ -258,7 +258,7 @@ func (r *Reconciler) delete(ctx context.Context, logger logr.Logger, etcd *druid
 func (r *Reconciler) createCompactionJob(ctx context.Context, logger logr.Logger, etcd *druidv1alpha1.Etcd) (*batchv1.Job, error) {
 	activeDeadlineSeconds := r.config.ActiveDeadlineDuration.Seconds()
 
-	_, etcdBackupImage, err := utils.GetEtcdImages(etcd, r.imageVector, r.config.FeatureGates[features.UseEtcdWrapper])
+	_, etcdBackupImage, err := utils2.GetEtcdImages(etcd, r.imageVector, r.config.FeatureGates[features.UseEtcdWrapper])
 	if err != nil {
 		return nil, fmt.Errorf("couldn't fetch etcd backup image: %v", err)
 	}
@@ -343,18 +343,18 @@ func getCompactionJobVolumeMounts(etcd *druidv1alpha1.Etcd, logger logr.Logger) 
 		return vms
 	}
 
-	provider, err := utils.StorageProviderFromInfraProvider(etcd.Spec.Backup.Store.Provider)
+	provider, err := utils2.StorageProviderFromInfraProvider(etcd.Spec.Backup.Store.Provider)
 	if err != nil {
 		logger.Error(err, "Storage provider is not recognized. Compaction job will not mount any volume with provider specific credentials", "namespace", etcd.Namespace, "name", etcd.Name)
 		return vms
 	}
 
-	if provider == utils.GCS {
+	if provider == utils2.GCS {
 		vms = append(vms, v1.VolumeMount{
 			Name:      "etcd-backup",
 			MountPath: "/var/.gcp/",
 		})
-	} else if provider == utils.S3 || provider == utils.ABS || provider == utils.OSS || provider == utils.Swift || provider == utils.OCS {
+	} else if provider == utils2.S3 || provider == utils2.ABS || provider == utils2.OSS || provider == utils2.Swift || provider == utils2.OCS {
 		vms = append(vms, v1.VolumeMount{
 			Name:      "etcd-backup",
 			MountPath: "/var/etcd-backup/",
@@ -379,13 +379,13 @@ func getCompactionJobVolumes(etcd *druidv1alpha1.Etcd, logger logr.Logger) []v1.
 	}
 
 	storeValues := etcd.Spec.Backup.Store
-	provider, err := utils.StorageProviderFromInfraProvider(storeValues.Provider)
+	provider, err := utils2.StorageProviderFromInfraProvider(storeValues.Provider)
 	if err != nil {
 		logger.Error(err, "Storage provider is not recognized. Compaction job will fail as no storage could be configured", "namespace", etcd.Namespace, "name", etcd.Name)
 		return vs
 	}
 
-	if provider == utils.GCS || provider == utils.S3 || provider == utils.OSS || provider == utils.ABS || provider == utils.Swift || provider == utils.OCS {
+	if provider == utils2.GCS || provider == utils2.S3 || provider == utils2.OSS || provider == utils2.ABS || provider == utils2.Swift || provider == utils2.OCS {
 		if storeValues.SecretRef == nil {
 			logger.Info("No secretRef is configured for backup store. Compaction job will fail as no storage could be configured.",
 				"namespace", etcd.Namespace, "name", etcd.Name)
@@ -416,24 +416,24 @@ func getCompactionJobEnvVar(etcd *druidv1alpha1.Etcd, logger logr.Logger) []v1.E
 	env = append(env, getEnvVarFromValues("STORAGE_CONTAINER", *storeValues.Container))
 	env = append(env, getEnvVarFromFields("POD_NAMESPACE", "metadata.namespace"))
 
-	provider, err := utils.StorageProviderFromInfraProvider(etcd.Spec.Backup.Store.Provider)
+	provider, err := utils2.StorageProviderFromInfraProvider(etcd.Spec.Backup.Store.Provider)
 	if err != nil {
 		logger.Error(err, "Storage provider is not recognized. Compaction job will likely fail as there is no provider specific credentials.", "namespace", etcd.Namespace, "name", etcd.Name)
 		return env
 	}
 
 	switch provider {
-	case utils.S3:
+	case utils2.S3:
 		env = append(env, getEnvVarFromValues("AWS_APPLICATION_CREDENTIALS", "/var/etcd-backup"))
-	case utils.ABS:
+	case utils2.ABS:
 		env = append(env, getEnvVarFromValues("AZURE_APPLICATION_CREDENTIALS", "/var/etcd-backup"))
-	case utils.GCS:
+	case utils2.GCS:
 		env = append(env, getEnvVarFromValues("GOOGLE_APPLICATION_CREDENTIALS", "/var/.gcp/serviceaccount.json"))
-	case utils.Swift:
+	case utils2.Swift:
 		env = append(env, getEnvVarFromValues("OPENSTACK_APPLICATION_CREDENTIALS", "/var/etcd-backup"))
-	case utils.OSS:
+	case utils2.OSS:
 		env = append(env, getEnvVarFromValues("ALICLOUD_APPLICATION_CREDENTIALS", "/var/etcd-backup"))
-	case utils.ECS:
+	case utils2.ECS:
 		if storeValues.SecretRef == nil {
 			logger.Info("No secretRef is configured for backup store. Compaction job will fail as no storage could be configured.",
 				"namespace", etcd.Namespace, "name", etcd.Name)
@@ -443,7 +443,7 @@ func getCompactionJobEnvVar(etcd *druidv1alpha1.Etcd, logger logr.Logger) []v1.E
 		env = append(env, getEnvVarFromSecrets("ECS_ENDPOINT", storeValues.SecretRef.Name, "endpoint"))
 		env = append(env, getEnvVarFromSecrets("ECS_ACCESS_KEY_ID", storeValues.SecretRef.Name, "accessKeyID"))
 		env = append(env, getEnvVarFromSecrets("ECS_SECRET_ACCESS_KEY", storeValues.SecretRef.Name, "secretAccessKey"))
-	case utils.OCS:
+	case utils2.OCS:
 		env = append(env, getEnvVarFromValues("OPENSHIFT_APPLICATION_CREDENTIALS", "/var/etcd-backup"))
 	}
 
@@ -508,7 +508,7 @@ func getCompactionJobArgs(etcd *druidv1alpha1.Etcd, metricsScrapeWaitDuration st
 	}
 	storeValues := etcd.Spec.Backup.Store
 	if storeValues != nil {
-		provider, err := utils.StorageProviderFromInfraProvider(etcd.Spec.Backup.Store.Provider)
+		provider, err := utils2.StorageProviderFromInfraProvider(etcd.Spec.Backup.Store.Provider)
 		if err == nil {
 			command = append(command, "--storage-provider="+provider)
 		}

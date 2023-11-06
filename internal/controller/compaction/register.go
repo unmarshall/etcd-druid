@@ -23,7 +23,6 @@ import (
 	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const controllerName = "compaction-controller"
@@ -37,8 +36,8 @@ func (r *Reconciler) RegisterWithManager(mgr ctrl.Manager) error {
 			MaxConcurrentReconciles: r.config.Workers,
 		}).
 		Watches(
-			&source.Kind{Type: &coordinationv1.Lease{}},
-			&handler.EnqueueRequestForOwner{OwnerType: &druidv1alpha1.Etcd{}, IsController: true},
+			&coordinationv1.Lease{},
+			handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &druidv1alpha1.Etcd{}, handler.OnlyControllerOwner()),
 			ctrlbuilder.WithPredicates(
 				druidpredicates.LeaseHolderIdentityChange(),
 				druidpredicates.IsSnapshotLease(),

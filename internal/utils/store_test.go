@@ -18,7 +18,7 @@ import (
 	"context"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/pkg/client/kubernetes"
+	"github.com/gardener/etcd-druid/internal/client/kubernetes"
 	"github.com/gardener/gardener/pkg/utils/test/matchers"
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

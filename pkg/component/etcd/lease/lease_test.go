@@ -18,12 +18,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gardener/etcd-druid/internal/client/kubernetes"
+	"github.com/gardener/etcd-druid/internal/common"
 	"github.com/go-logr/logr"
 	"k8s.io/utils/pointer"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/pkg/client/kubernetes"
-	"github.com/gardener/etcd-druid/pkg/common"
 	. "github.com/gardener/etcd-druid/pkg/component/etcd/lease"
 
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"

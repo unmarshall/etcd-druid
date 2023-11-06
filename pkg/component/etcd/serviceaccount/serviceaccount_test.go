@@ -18,7 +18,7 @@ import (
 	"context"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/pkg/client/kubernetes"
+	"github.com/gardener/etcd-druid/internal/client/kubernetes"
 	gardenercomponent "github.com/gardener/gardener/pkg/component"
 
 	. "github.com/gardener/gardener/pkg/utils/test/matchers"
@@ -38,7 +38,7 @@ var _ = Describe("ServiceAccount Component", Ordered, func() {
 		saComponent gardenercomponent.Deployer
 		ctx         context.Context
 		c           client.Client
-		values      *Values
+		values      Values
 	)
 
 	Context("#Deploy", func() {
@@ -47,7 +47,7 @@ var _ = Describe("ServiceAccount Component", Ordered, func() {
 			ctx = context.Background()
 			c = fake.NewClientBuilder().WithScheme(kubernetes.Scheme).Build()
 
-			values = &Values{
+			values = Values{
 				Name:      "test-service-account",
 				Namespace: "test-namespace",
 				Labels: map[string]string{
@@ -116,7 +116,7 @@ var _ = Describe("ServiceAccount Component", Ordered, func() {
 			ctx = context.Background()
 			c = fake.NewClientBuilder().WithScheme(kubernetes.Scheme).Build()
 
-			values = &Values{
+			values = Values{
 				Name:      "test-service-account",
 				Namespace: "test-namespace",
 				Labels: map[string]string{
@@ -159,11 +159,11 @@ var _ = Describe("ServiceAccount Component", Ordered, func() {
 	})
 })
 
-func getServiceAccountKeyFromValue(value *Values) types.NamespacedName {
+func getServiceAccountKeyFromValue(value Values) types.NamespacedName {
 	return client.ObjectKey{Name: value.Name, Namespace: value.Namespace}
 }
 
-func verifyServicAccountValues(expected *corev1.ServiceAccount, values *Values) {
+func verifyServicAccountValues(expected *corev1.ServiceAccount, values Values) {
 	Expect(expected.Name).To(Equal(values.Name))
 	Expect(expected.Labels).Should(Equal(values.Labels))
 	Expect(expected.Namespace).To(Equal(values.Namespace))

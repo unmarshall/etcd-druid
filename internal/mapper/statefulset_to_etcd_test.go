@@ -18,6 +18,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gardener/etcd-druid/internal/common"
+	. "github.com/gardener/etcd-druid/internal/mapper"
+	mockclient "github.com/gardener/etcd-druid/internal/mock/controller-runtime/client"
 	"github.com/gardener/gardener/pkg/controllerutils/mapper"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
@@ -32,9 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/pkg/common"
-	. "github.com/gardener/etcd-druid/pkg/mapper"
-	mockclient "github.com/gardener/etcd-druid/pkg/mock/controller-runtime/client"
 )
 
 var _ = Describe("Druid Mapper", func() {

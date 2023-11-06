@@ -19,9 +19,9 @@ import (
 	"time"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
+	"github.com/gardener/etcd-druid/internal/health/status"
+	"github.com/gardener/etcd-druid/internal/utils"
 
-	"github.com/gardener/etcd-druid/pkg/health/status"
-	"github.com/gardener/etcd-druid/pkg/utils"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"

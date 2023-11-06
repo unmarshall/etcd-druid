@@ -28,11 +28,11 @@ import (
 type component struct {
 	client    client.Client
 	namespace string
-	values    *Values
+	values    Values
 }
 
 // New creates a new poddisruptionbudget deployer instance.
-func New(c client.Client, namespace string, values *Values) gardenercomponent.Deployer {
+func New(c client.Client, namespace string, values Values) gardenercomponent.Deployer {
 	return &component{
 		client:    c,
 		namespace: namespace,

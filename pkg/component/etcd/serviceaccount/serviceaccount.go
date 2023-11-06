@@ -28,7 +28,7 @@ import (
 
 type component struct {
 	client client.Client
-	values *Values
+	values Values
 }
 
 func (c component) Deploy(ctx context.Context) error {
@@ -58,7 +58,7 @@ func (c component) emptyServiceAccount() *corev1.ServiceAccount {
 }
 
 // New creates a new service account deployer instance.
-func New(c client.Client, value *Values) gardenercomponent.Deployer {
+func New(c client.Client, value Values) gardenercomponent.Deployer {
 	return &component{
 		client: c,
 		values: value,

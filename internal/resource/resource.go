@@ -26,6 +26,13 @@ type OperatorContext struct {
 	Data map[string]string
 }
 
+func NewOperatorContext(ctx context.Context, client client.Client, logger logr.Logger, objectKey client.ObjectKey) OperatorContext {
+	return OperatorContext{
+		Context: ctx,
+		Data:    make(map[string]string),
+	}
+}
+
 // Operator manages one or more resources of a specific Kind which are provisioned for an etcd cluster.
 type Operator interface {
 	// GetExistingResourceNames gets all resources that currently exist that this Operator manages.

@@ -18,10 +18,9 @@ import (
 	"context"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/pkg/client/kubernetes"
+	"github.com/gardener/etcd-druid/internal/client/kubernetes"
+	"github.com/gardener/etcd-druid/internal/utils"
 	. "github.com/gardener/etcd-druid/pkg/component/etcd/service"
-	"github.com/gardener/etcd-druid/pkg/utils"
-
 	"github.com/gardener/gardener/pkg/component"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	. "github.com/gardener/gardener/pkg/utils/test/matchers"

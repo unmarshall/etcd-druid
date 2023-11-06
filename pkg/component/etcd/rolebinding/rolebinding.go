@@ -27,7 +27,7 @@ import (
 
 type component struct {
 	client client.Client
-	values *Values
+	values Values
 }
 
 func (c component) Deploy(ctx context.Context) error {
@@ -68,7 +68,7 @@ func (c *component) emptyRoleBinding() *rbacv1.RoleBinding {
 }
 
 // New creates a new role binding deployer instance.
-func New(c client.Client, value *Values) gardenercomponent.Deployer {
+func New(c client.Client, value Values) gardenercomponent.Deployer {
 	return &component{
 		client: c,
 		values: value,

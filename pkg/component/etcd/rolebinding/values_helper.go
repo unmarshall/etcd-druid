@@ -19,8 +19,8 @@ import (
 )
 
 // GenerateValues generates `serviceaccount.Values` for the serviceaccount component with the given `etcd` object.
-func GenerateValues(etcd *druidv1alpha1.Etcd) *Values {
-	return &Values{
+func GenerateValues(etcd *druidv1alpha1.Etcd) Values {
+	return Values{
 		Name:               etcd.GetRoleBindingName(),
 		Namespace:          etcd.Namespace,
 		Labels:             etcd.GetDefaultLabels(),

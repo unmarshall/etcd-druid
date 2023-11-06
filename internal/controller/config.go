@@ -23,8 +23,7 @@ import (
 	"github.com/gardener/etcd-druid/internal/controller/etcdcopybackupstask"
 	"github.com/gardener/etcd-druid/internal/controller/secret"
 	"github.com/gardener/etcd-druid/internal/controller/utils"
-	"github.com/gardener/etcd-druid/pkg/features"
-
+	"github.com/gardener/etcd-druid/internal/features"
 	flag "github.com/spf13/pflag"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/component-base/featuregate"

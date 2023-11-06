@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/pkg/client/kubernetes"
+	"github.com/gardener/etcd-druid/internal/client/kubernetes"
 	"github.com/gardener/etcd-druid/pkg/component/etcd/role"
 
 	"github.com/gardener/gardener/pkg/component"
@@ -40,7 +40,7 @@ var _ = Describe("Role Component", Ordered, func() {
 	var (
 		ctx           context.Context
 		c             client.Client
-		values        *role.Values
+		values        role.Values
 		roleComponent component.Deployer
 	)
 
@@ -108,7 +108,7 @@ var _ = Describe("Role Component", Ordered, func() {
 	})
 })
 
-func verifyRoleValues(expected *rbacv1.Role, values *role.Values) {
+func verifyRoleValues(expected *rbacv1.Role, values role.Values) {
 	Expect(expected.Name).To(Equal(values.Name))
 	Expect(expected.Labels).To(Equal(values.Labels))
 	Expect(expected.Namespace).To(Equal(values.Namespace))
@@ -159,12 +159,12 @@ func verifyRoleValues(expected *rbacv1.Role, values *role.Values) {
 		}),
 	}))
 }
-func getRoleKeyFromValue(values *role.Values) types.NamespacedName {
+func getRoleKeyFromValue(values role.Values) types.NamespacedName {
 	return client.ObjectKey{Name: values.Name, Namespace: values.Namespace}
 }
 
-func getTestRoleValues() *role.Values {
-	return &role.Values{
+func getTestRoleValues() role.Values {
+	return role.Values{
 		Name:      "test-role",
 		Namespace: "test-namespace",
 		Labels: map[string]string{

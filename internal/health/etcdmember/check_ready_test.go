@@ -20,6 +20,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gardener/etcd-druid/internal/common"
+	. "github.com/gardener/etcd-druid/internal/health/etcdmember"
+	mockclient "github.com/gardener/etcd-druid/internal/mock/controller-runtime/client"
+	"github.com/gardener/etcd-druid/internal/utils"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/go-logr/logr"
 
@@ -38,10 +42,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/pkg/common"
-	. "github.com/gardener/etcd-druid/pkg/health/etcdmember"
-	mockclient "github.com/gardener/etcd-druid/pkg/mock/controller-runtime/client"
-	"github.com/gardener/etcd-druid/pkg/utils"
 )
 
 var _ = Describe("ReadyCheck", func() {

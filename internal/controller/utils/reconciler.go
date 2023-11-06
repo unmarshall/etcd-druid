@@ -15,10 +15,12 @@
 package utils
 
 import (
+	"errors"
+	"fmt"
 	"path/filepath"
 	"time"
 
-	"github.com/gardener/etcd-druid/pkg/common"
+	"github.com/gardener/etcd-druid/internal/common"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -60,12 +62,24 @@ func ContainsFinalizer(o client.Object, finalizer string) bool {
 
 type ReconcileStepResult struct {
 	result            ctrl.Result
-	err               error
+	errs              []error
+	description       string
 	continueReconcile bool
 }
 
 func (r ReconcileStepResult) ReconcileResult() (ctrl.Result, error) {
-	return r.result, r.err
+	return r.result, errors.Join(r.errs...)
+}
+
+func (r ReconcileStepResult) GetErrors() []error {
+	return r.errs
+}
+
+func (r ReconcileStepResult) GetDescription() string {
+	if len(r.errs) > 0 {
+		return fmt.Sprintf("%s %s", r.description, errors.Join(r.errs...).Error())
+	}
+	return r.description
 }
 
 func DoNotRequeue() ReconcileStepResult {
@@ -81,18 +95,19 @@ func ContinueReconcile() ReconcileStepResult {
 	}
 }
 
-func ReconcileWithError(err error) ReconcileStepResult {
+func ReconcileWithError(errs ...error) ReconcileStepResult {
 	return ReconcileStepResult{
 		continueReconcile: false,
 		result:            ctrl.Result{Requeue: true},
-		err:               err,
+		errs:              errs,
 	}
 }
 
-func ReconcileAfter(period time.Duration) ReconcileStepResult {
+func ReconcileAfter(period time.Duration, description string) ReconcileStepResult {
 	return ReconcileStepResult{
 		continueReconcile: false,
 		result:            ctrl.Result{RequeueAfter: period},
+		description:       description,
 	}
 }
 

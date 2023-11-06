@@ -20,11 +20,10 @@ import (
 
 	"github.com/gardener/etcd-druid/controllers/custodian"
 	"github.com/gardener/etcd-druid/controllers/etcd"
+	"github.com/gardener/etcd-druid/internal/client/kubernetes"
 	"github.com/gardener/etcd-druid/internal/controller/compaction"
 	"github.com/gardener/etcd-druid/internal/controller/etcdcopybackupstask"
 	"github.com/gardener/etcd-druid/internal/controller/secret"
-	"github.com/gardener/etcd-druid/pkg/client/kubernetes"
-
 	coordinationv1 "k8s.io/api/coordination/v1"
 	coordinationv1beta1 "k8s.io/api/coordination/v1beta1"
 	corev1 "k8s.io/api/core/v1"

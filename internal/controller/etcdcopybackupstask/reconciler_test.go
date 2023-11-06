@@ -19,6 +19,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gardener/etcd-druid/internal/client/kubernetes"
+	"github.com/gardener/etcd-druid/internal/common"
+	druidutils "github.com/gardener/etcd-druid/internal/utils"
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -34,10 +37,6 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/pkg/client/kubernetes"
-	"github.com/gardener/etcd-druid/pkg/common"
-	"github.com/gardener/etcd-druid/pkg/utils"
-	druidutils "github.com/gardener/etcd-druid/pkg/utils"
 	testutils "github.com/gardener/etcd-druid/test/utils"
 	"github.com/gardener/gardener/pkg/controllerutils"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
@@ -704,9 +703,9 @@ func checkEnvVars(envVars []corev1.EnvVar, storeProvider, container, envKeyPrefi
 }
 
 func matchJob(task *druidv1alpha1.EtcdCopyBackupsTask, imageVector imagevector.ImageVector) gomegatypes.GomegaMatcher {
-	sourceProvider, err := utils.StorageProviderFromInfraProvider(task.Spec.SourceStore.Provider)
+	sourceProvider, err := druidutils.StorageProviderFromInfraProvider(task.Spec.SourceStore.Provider)
 	Expect(err).NotTo(HaveOccurred())
-	targetProvider, err := utils.StorageProviderFromInfraProvider(task.Spec.TargetStore.Provider)
+	targetProvider, err := druidutils.StorageProviderFromInfraProvider(task.Spec.TargetStore.Provider)
 	Expect(err).NotTo(HaveOccurred())
 
 	images, err := imagevector.FindImages(imageVector, []string{common.BackupRestore})

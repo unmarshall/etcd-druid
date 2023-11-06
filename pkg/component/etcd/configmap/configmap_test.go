@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/gardener/etcd-druid/pkg/client/kubernetes"
+	"github.com/gardener/etcd-druid/internal/client/kubernetes"
 	. "github.com/gardener/etcd-druid/pkg/component/etcd/configmap"
 	"github.com/ghodss/yaml"
 

@@ -18,12 +18,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/gardener/etcd-druid/internal/health/condition"
+	"github.com/gardener/etcd-druid/internal/health/etcdmember"
+	. "github.com/gardener/etcd-druid/internal/health/status"
 	"k8s.io/utils/pointer"
 
 	"github.com/go-logr/logr"
 
-	"github.com/gardener/etcd-druid/pkg/health/condition"
-	"github.com/gardener/etcd-druid/pkg/health/etcdmember"
 	"github.com/gardener/gardener/pkg/utils/test"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -33,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	. "github.com/gardener/etcd-druid/pkg/health/status"
 )
 
 var _ = Describe("Check", func() {

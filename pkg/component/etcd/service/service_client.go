@@ -17,7 +17,7 @@ package service
 import (
 	"context"
 
-	"github.com/gardener/etcd-druid/pkg/utils"
+	"github.com/gardener/etcd-druid/internal/utils"
 	"github.com/gardener/gardener/pkg/controllerutils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

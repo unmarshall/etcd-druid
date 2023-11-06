@@ -23,8 +23,8 @@ import (
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	"github.com/gardener/etcd-druid/controllers/etcd"
-	"github.com/gardener/etcd-druid/pkg/common"
-	"github.com/gardener/etcd-druid/pkg/utils"
+	"github.com/gardener/etcd-druid/internal/common"
+	utils2 "github.com/gardener/etcd-druid/internal/utils"
 	"github.com/gardener/etcd-druid/test/integration/controllers/assets"
 	testutils "github.com/gardener/etcd-druid/test/utils"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
@@ -335,7 +335,7 @@ var _ = Describe("Multinode ETCD", func() {
 
 			By("should raise an event if annotation to ignore reconciliation is applied on ETCD CR")
 			patch = client.MergeFrom(instance.DeepCopy())
-			annotations := utils.MergeStringMaps(
+			annotations := utils2.MergeStringMaps(
 				map[string]string{
 					etcd.IgnoreReconciliationAnnotation: "true",
 				},
@@ -845,7 +845,7 @@ func validateEtcd(instance *druidv1alpha1.Etcd, s *appsv1.StatefulSet, cm *corev
 	// Validate Resources
 	Expect(instance.Spec.Etcd.Resources).NotTo(BeNil())
 
-	store, err := utils.StorageProviderFromInfraProvider(instance.Spec.Backup.Store.Provider)
+	store, err := utils2.StorageProviderFromInfraProvider(instance.Spec.Backup.Store.Provider)
 	Expect(err).NotTo(HaveOccurred())
 
 	Expect(*cm).To(MatchFields(IgnoreExtras, Fields{

@@ -57,6 +57,12 @@ func MergeMaps[K comparable, V any](sourceMaps ...map[K]V) map[K]V {
 	return merged
 }
 
+//	func Iif[T any](condition bool, onTrue T, onFalse T) T {
+//		if condition {
+//			return onTrue
+//		}
+//		return onFalse
+//	}
 func nameAndNamespace(namespaceOrName string, nameOpt ...string) (namespace, name string) {
 	if len(nameOpt) > 1 {
 		panic(fmt.Sprintf("more than name/namespace for key specified: %s/%v", namespaceOrName, nameOpt))
