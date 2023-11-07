@@ -76,8 +76,8 @@ type Condition struct {
 
 const (
 	// IgnoreReconciliationAnnotation is an annotation set by an operator in order to stop reconciliation.
-	// Deprecated: Please use PauseSpecReconcileAnnotation instead
+	// Deprecated: Please use SuspendEtcdSpecReconcileAnnotation instead
 	IgnoreReconciliationAnnotation = "druid.gardener.cloud/ignore-reconciliation"
-	// PauseSpecReconcileAnnotation is an annotation set by an operator in order to have a temporary pause of any reconciliation done by druid for etcd resources.
-	PauseSpecReconcileAnnotation = "druid.gardener.cloud/pause-spec-reconcile"
+	// SuspendEtcdSpecReconcileAnnotation is an annotation set by an operator to temporarily suspend any etcd spec reconciliation.
+	SuspendEtcdSpecReconcileAnnotation = "druid.gardener.cloud/suspend-etcd-spec-reconcile"
 )

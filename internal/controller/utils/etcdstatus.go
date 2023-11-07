@@ -7,7 +7,6 @@ import (
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	druiderr "github.com/gardener/etcd-druid/internal/errors"
 	"github.com/go-logr/logr"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -67,16 +66,6 @@ func (l *lastOpErrRecorder) RecordError(ctx context.Context, etcd *druidv1alpha1
 	description += " Operation will be retried."
 	lastErrors := druiderr.MapToLastErrors(errs)
 	return l.recordLastOperationAndErrors(ctx, etcd, operationType, druidv1alpha1.LastOperationStateError, description, lastErrors...)
-}
-
-func GetLatestEtcd(ctx context.Context, client client.Client, objectKey client.ObjectKey) (etcd druidv1alpha1.Etcd, notFound bool, err error) {
-	etcd = druidv1alpha1.Etcd{}
-	if err := client.Get(ctx, objectKey, &etcd); err != nil {
-		if apierrors.IsNotFound(err) {
-			notFound = true
-		}
-	}
-	return
 }
 
 func (l *lastOpErrRecorder) recordLastOperationAndErrors(ctx context.Context, etcd *druidv1alpha1.Etcd, operationType druidv1alpha1.LastOperationType, operationState druidv1alpha1.LastOperationState, description string, lastErrors ...druidv1alpha1.LastError) error {

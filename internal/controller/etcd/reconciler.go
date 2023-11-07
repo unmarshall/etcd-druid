@@ -100,24 +100,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return r.triggerDeletionFlow(ctx, dLog, etcd)
 	}
 
-	//if !etcd.DeletionTimestamp.IsZero() {
-	//	if err := r.triggerDeletionFlow(ctx, etcd); err != nil {
-	//		return ctrl.Result{Requeue: true}, err
-	//	}
+	//if metav1.HasAnnotation(etcd.ObjectMeta, IgnoreReconciliationAnnotation) {
+	//	r.recorder.Eventf(
+	//		etcd,
+	//		corev1.EventTypeWarning,
+	//		"ReconciliationIgnored",
+	//		"reconciliation of %s/%s is ignored by etcd-druid due to the presence of annotation %s on the etcd resource",
+	//		etcd.Namespace,
+	//		etcd.Name,
+	//		IgnoreReconciliationAnnotation,
+	//	)
+	//	return ctrl.Result{Requeue: false}, nil
 	//}
-
-	if metav1.HasAnnotation(etcd.ObjectMeta, IgnoreReconciliationAnnotation) {
-		r.recorder.Eventf(
-			etcd,
-			corev1.EventTypeWarning,
-			"ReconciliationIgnored",
-			"reconciliation of %s/%s is ignored by etcd-druid due to the presence of annotation %s on the etcd resource",
-			etcd.Namespace,
-			etcd.Name,
-			IgnoreReconciliationAnnotation,
-		)
-		return ctrl.Result{Requeue: false}, nil
-	}
 
 	var reconcileSpecErr error
 	if r.shouldReconcileSpec(etcd) {
@@ -162,11 +156,11 @@ func (r *Reconciler) getLatestEtcd(ctx context.Context, objectKey client.ObjectK
 	return ctrlutils.ContinueReconcile()
 }
 
-func (r *Reconciler) handleReconcilePause(etcd *druidv1alpha1.Etcd) ctrlutils.ReconcileActionResult {
+func (r *Reconciler) handleReconcilePause(etcd *druidv1alpha1.Etcd) ctrlutils.ReconcileStepResult {
 	//TODO: Once no one uses IgnoreReconciliationAnnotation annotation, then we can simplify this code.
 	var annotationKey string
-	if metav1.HasAnnotation(etcd.ObjectMeta, druidv1alpha1.PauseSpecReconcileAnnotation) {
-		annotationKey = druidv1alpha1.PauseSpecReconcileAnnotation
+	if metav1.HasAnnotation(etcd.ObjectMeta, druidv1alpha1.SuspendEtcdSpecReconcileAnnotation) {
+		annotationKey = druidv1alpha1.SuspendEtcdSpecReconcileAnnotation
 	} else if metav1.HasAnnotation(etcd.ObjectMeta, druidv1alpha1.IgnoreReconciliationAnnotation) {
 		annotationKey = druidv1alpha1.IgnoreReconciliationAnnotation
 	}

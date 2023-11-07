@@ -32,8 +32,7 @@ func (r *Reconciler) triggerDeletionFlow(ctx context.Context, logger logr.Logger
 			return r.recordIncompleteDeletionOperation(operatorCtx, logger, etcd.GetNamespaceName(), stepResult).ReconcileResult()
 		}
 	}
-	// if we are here this means that all deletion steps have been successful
-	return r.recordDeletionSuccessOperation(operatorCtx, logger, etcd.GetNamespaceName()).ReconcileResult()
+	return ctrlutils.DoNotRequeue().ReconcileResult()
 }
 
 func (r *Reconciler) deleteEtcdResources(ctx resource.OperatorContext, logger logr.Logger, etcdObjKey client.ObjectKey) ctrlutils.ReconcileStepResult {
@@ -115,16 +114,4 @@ func (r *Reconciler) recordIncompleteDeletionOperation(ctx resource.OperatorCont
 		return ctrlutils.ReconcileWithError(err)
 	}
 	return exitReconcileStepResult
-}
-
-func (r *Reconciler) recordDeletionSuccessOperation(ctx resource.OperatorContext, logger logr.Logger, etcdObjKey client.ObjectKey) ctrlutils.ReconcileStepResult {
-	etcd := &druidv1alpha1.Etcd{}
-	if result := r.getLatestEtcd(ctx, etcdObjKey, etcd); ctrlutils.ShortCircuitReconcile(result) {
-		return result
-	}
-	if err := r.lastOpErrRecorder.RecordSuccess(ctx, etcd, druidv1alpha1.LastOperationTypeDelete); err != nil {
-		logger.Error(err, "failed to record last operation for successful etcd deletion")
-		return ctrlutils.ReconcileWithError(err)
-	}
-	return ctrlutils.DoNotRequeue()
 }
