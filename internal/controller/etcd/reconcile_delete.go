@@ -11,7 +11,6 @@ import (
 	"github.com/gardener/etcd-druid/internal/resource"
 	"github.com/gardener/gardener/pkg/controllerutils"
 	"github.com/go-logr/logr"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -19,8 +18,8 @@ import (
 type deleteStepFn func(ctx resource.OperatorContext, logger logr.Logger, etcdObjectKey client.ObjectKey) ctrlutils.ReconcileStepResult
 
 // triggerDeletionFlow is the entry point for the deletion flow triggered for an etcd resource which has a DeletionTimeStamp set on it.
-func (r *Reconciler) triggerDeletionFlow(ctx context.Context, logger logr.Logger, etcd *druidv1alpha1.Etcd) (ctrl.Result, error) {
-	operatorCtx := resource.NewOperatorContext(ctx, r.client, r.logger, etcd.GetNamespaceName())
+func (r *Reconciler) triggerDeletionFlow(ctx context.Context, logger logr.Logger, etcdObjectKey client.ObjectKey) ctrlutils.ReconcileStepResult {
+	operatorCtx := resource.NewOperatorContext(ctx, r.client, r.logger, etcdObjectKey)
 	deleteStepFns := []deleteStepFn{
 		r.recordDeletionStartOperation,
 		r.deleteEtcdResources,
@@ -28,11 +27,11 @@ func (r *Reconciler) triggerDeletionFlow(ctx context.Context, logger logr.Logger
 		r.removeFinalizer,
 	}
 	for _, fn := range deleteStepFns {
-		if stepResult := fn(operatorCtx, logger, etcd.GetNamespaceName()); ctrlutils.ShortCircuitReconcile(stepResult) {
-			return r.recordIncompleteDeletionOperation(operatorCtx, logger, etcd.GetNamespaceName(), stepResult).ReconcileResult()
+		if stepResult := fn(operatorCtx, logger, etcdObjectKey); ctrlutils.ShortCircuitReconcile(stepResult) {
+			return r.recordIncompleteDeletionOperation(operatorCtx, logger, etcdObjectKey, stepResult)
 		}
 	}
-	return ctrlutils.DoNotRequeue().ReconcileResult()
+	return ctrlutils.DoNotRequeue()
 }
 
 func (r *Reconciler) deleteEtcdResources(ctx resource.OperatorContext, logger logr.Logger, etcdObjKey client.ObjectKey) ctrlutils.ReconcileStepResult {
