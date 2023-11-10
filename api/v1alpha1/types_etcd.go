@@ -461,6 +461,12 @@ type LastOperation struct {
 	State LastOperationState `json:"state"`
 	// Description describes the last operation.
 	Description string `json:"description"`
+	// RunID correlates an operation with a reconciliation run.
+	// Every time an etcd resource is reconciled (barring status reconciliation which is periodic), a unique ID is
+	// generated which can be used to correlate all actions done as part of a single reconcile run. Capturing this
+	// as part of LastOperation aids in establishing this correlation. This further helps in also easily filtering
+	// reconcile logs as all structured logs in a reconcile run should have the `runID` referenced.
+	RunID string
 	// LastUpdateTime is the time at which the operation was updated.
 	LastUpdateTime metav1.Time `json:"lastUpdateTime"`
 }
