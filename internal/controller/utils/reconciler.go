@@ -111,6 +111,6 @@ func ReconcileAfter(period time.Duration, description string) ReconcileStepResul
 	}
 }
 
-func ShortCircuitReconcile(result ReconcileStepResult) bool {
+func ShortCircuitReconcileFlow(result ReconcileStepResult) bool {
 	return !result.continueReconcile
 }

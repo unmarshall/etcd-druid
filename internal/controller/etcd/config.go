@@ -62,7 +62,7 @@ func InitFromFlags(fs *flag.FlagSet, cfg *Config) {
 	flag.BoolVar(&cfg.IgnoreOperationAnnotation, ignoreOperationAnnotationFlagName, defaultIgnoreOperationAnnotation,
 		"Specifies whether to ignore or honour the operation annotation on resources to be reconciled.")
 	flag.BoolVar(&cfg.EnableEtcdSpecAutoReconcile, enableEtcdSpecAutoReconcileFlagName, defaultEnableEtcdSpecAutoReconcile,
-		"If true then automatically reconciles Etcd Spec. If false waits for explicit annoation to be placed on the Etcd resource to trigger reconcile.")
+		"If true then automatically reconciles Etcd Spec. If false waits for explicit annotation to be placed on the Etcd resource to trigger reconcile.")
 	fs.BoolVar(&cfg.DisableEtcdServiceAccountAutomount, disableEtcdServiceAccountAutomountFlagName, defaultDisableEtcdServiceAccountAutomount,
 		"If true then .automountServiceAccountToken will be set to false for the ServiceAccount created for etcd StatefulSets.")
 	fs.DurationVar(&cfg.EtcdStatusSyncPeriod, etcdStatusSyncPeriodFlagName, defaultEtcdStatusSyncPeriod,

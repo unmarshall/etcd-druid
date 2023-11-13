@@ -6,12 +6,10 @@ import (
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	ctrlutils "github.com/gardener/etcd-druid/internal/controller/utils"
 	"github.com/gardener/etcd-druid/internal/resource"
-	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/google/uuid"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -85,51 +83,44 @@ func NewReconciler(mgr manager.Manager, config *Config) (*Reconciler, error) {
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;get;list
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	type reconcileFn func(ctx context.Context, objectKey client.ObjectKey) ctrlutils.ReconcileStepResult
+	type reconcileFn func(ctx context.Context, objectKey client.ObjectKey, runID string) ctrlutils.ReconcileStepResult
 	reconcileFns := []reconcileFn{
 		r.reconcileEtcdDeletion,
 		r.reconcileSpec,
 		r.reconcileStatus,
 	}
+	runID := uuid.New().String()
 	for _, fn := range reconcileFns {
-		if result := fn(ctx, req.NamespacedName); ctrlutils.ShortCircuitReconcile(result) {
+		if result := fn(ctx, req.NamespacedName, runID); ctrlutils.ShortCircuitReconcileFlow(result) {
 			return result.ReconcileResult()
 		}
 	}
-
 	return ctrlutils.DoNotRequeue().ReconcileResult()
-
-	//if r.shouldReconcileSpec(etcd) {
-	//	rLog := r.logger.WithValues("etcd", req.NamespacedName, "operation", "reconcile-spec")
-	//	if result := r.reconcileSpec(ctx, etcd, rLog);
-	//}
-	//
-	//r.reconcileStatus(ctx, req.NamespacedName)
-	//
-	//if reconcileSpecErr != nil {
-	//	return ctrl.Result{Requeue: true}, reconcileSpecErr
-	//}
-	//return ctrl.Result{RequeueAfter: r.config.EtcdStatusSyncPeriod}, nil
 }
 
-func (r *Reconciler) reconcileEtcdDeletion(ctx context.Context, etcdObjectKey client.ObjectKey) ctrlutils.ReconcileStepResult {
+func (r *Reconciler) reconcileEtcdDeletion(ctx context.Context, etcdObjectKey client.ObjectKey, runID string) ctrlutils.ReconcileStepResult {
 	etcd := &druidv1alpha1.Etcd{}
-	if result := r.getLatestEtcd(ctx, etcdObjectKey, etcd); ctrlutils.ShortCircuitReconcile(result) {
+	if result := r.getLatestEtcd(ctx, etcdObjectKey, etcd); ctrlutils.ShortCircuitReconcileFlow(result) {
 		return result
 	}
 	if etcd.IsMarkedForDeletion() {
+		operatorCtx := resource.NewOperatorContext(ctx, r.logger, runID)
 		dLog := r.logger.WithValues("etcd", etcdObjectKey, "operation", "delete")
-		return r.triggerDeletionFlow(ctx, dLog, etcdObjectKey)
+		return r.triggerDeletionFlow(operatorCtx, dLog, etcdObjectKey)
 	}
 	return ctrlutils.ContinueReconcile()
 }
 
-func (r *Reconciler) reconcileSpec(ctx context.Context, etcdObjectKey client.ObjectKey) ctrlutils.ReconcileStepResult {
+func (r *Reconciler) reconcileSpec(ctx context.Context, etcdObjectKey client.ObjectKey, runID string) ctrlutils.ReconcileStepResult {
+	etcd := &druidv1alpha1.Etcd{}
+	if result := r.getLatestEtcd(ctx, etcdObjectKey, etcd); ctrlutils.ShortCircuitReconcileFlow(result) {
+		return result
+	}
 
 	return ctrlutils.DoNotRequeue()
 }
 
-func (r *Reconciler) reconcileStatus(ctx context.Context, etcdNamespacedName types.NamespacedName) ctrlutils.ReconcileStepResult {
+func (r *Reconciler) reconcileStatus(ctx context.Context, etcdNamespacedName types.NamespacedName, runID string) ctrlutils.ReconcileStepResult {
 	/*
 		fetch EtcdMember resources
 		fetch member leases
@@ -152,32 +143,41 @@ func (r *Reconciler) getLatestEtcd(ctx context.Context, objectKey client.ObjectK
 	return ctrlutils.ContinueReconcile()
 }
 
-func (r *Reconciler) handleReconcilePause(etcd *druidv1alpha1.Etcd) ctrlutils.ReconcileStepResult {
-	//TODO: Once no one uses IgnoreReconciliationAnnotation annotation, then we can simplify this code.
-	var annotationKey string
-	if metav1.HasAnnotation(etcd.ObjectMeta, druidv1alpha1.SuspendEtcdSpecReconcileAnnotation) {
-		annotationKey = druidv1alpha1.SuspendEtcdSpecReconcileAnnotation
-	} else if metav1.HasAnnotation(etcd.ObjectMeta, druidv1alpha1.IgnoreReconciliationAnnotation) {
-		annotationKey = druidv1alpha1.IgnoreReconciliationAnnotation
-	}
-	if len(annotationKey) > 0 {
-		r.recorder.Eventf(
-			etcd,
-			corev1.EventTypeWarning,
-			"SpecReconciliationSkipped",
-			"spec reconciliation of %s/%s is skipped by etcd-druid due to the presence of annotation %s on the etcd resource",
-			etcd.Namespace,
-			etcd.Name,
-			annotationKey,
-		)
-		return ctrlutils.DoNotRequeue()
-	}
-	return ctrlutils.ContinueReconcile()
-}
+//func (r *Reconciler) runPreSpecReconcileChecks(etcd *druidv1alpha1.Etcd) ctrlutils.ReconcileStepResult {
+//	suspendEtcdSpecReconcileAnnotationKey := getSuspendEtcdReconcileAnnotationKey(etcd)
+//	if suspendEtcdSpecReconcileAnnotationKey != nil {
+//		r.recorder.Eventf(
+//			etcd,
+//			corev1.EventTypeWarning,
+//			"SpecReconciliationSkipped",
+//			"spec reconciliation of %s/%s is skipped by etcd-druid due to the presence of annotation %s on the etcd resource",
+//			etcd.Namespace,
+//			etcd.Name,
+//			suspendEtcdSpecReconcileAnnotationKey,
+//		)
+//
+//	}
+//}
 
-func (r *Reconciler) shouldReconcileSpec(etcd *druidv1alpha1.Etcd) bool {
-	// TODO: replace v1beta1constants.GardenerOperation with own `druid.gardener.cloud/operation: reconcile`
-	// and make gardener use druid's constant instead of druid use gardener's constant
-	return r.config.IgnoreOperationAnnotation ||
-		(!r.config.IgnoreOperationAnnotation && metav1.HasAnnotation(etcd.ObjectMeta, v1beta1constants.GardenerOperation))
-}
+//func (r *Reconciler) checkAndHandleReconcileSuspension(etcd *druidv1alpha1.Etcd) bool {
+//	//TODO: Once no one uses IgnoreReconciliationAnnotation annotation, then we can simplify this code.
+//	var annotationKey string
+//	if metav1.HasAnnotation(etcd.ObjectMeta, druidv1alpha1.SuspendEtcdSpecReconcileAnnotation) {
+//		annotationKey = druidv1alpha1.SuspendEtcdSpecReconcileAnnotation
+//	} else if metav1.HasAnnotation(etcd.ObjectMeta, druidv1alpha1.IgnoreReconciliationAnnotation) {
+//		annotationKey = druidv1alpha1.IgnoreReconciliationAnnotation
+//	}
+//	if len(annotationKey) > 0 {
+//		r.recorder.Eventf(
+//			etcd,
+//			corev1.EventTypeWarning,
+//			"SpecReconciliationSkipped",
+//			"spec reconciliation of %s/%s is skipped by etcd-druid due to the presence of annotation %s on the etcd resource",
+//			etcd.Namespace,
+//			etcd.Name,
+//			annotationKey,
+//		)
+//		return true
+//	}
+//	return ctrlutils.ContinueReconcile()
+//}

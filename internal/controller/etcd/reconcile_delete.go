@@ -1,7 +1,6 @@
 package etcd
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -18,8 +17,7 @@ import (
 type deleteStepFn func(ctx resource.OperatorContext, logger logr.Logger, etcdObjectKey client.ObjectKey) ctrlutils.ReconcileStepResult
 
 // triggerDeletionFlow is the entry point for the deletion flow triggered for an etcd resource which has a DeletionTimeStamp set on it.
-func (r *Reconciler) triggerDeletionFlow(ctx context.Context, logger logr.Logger, etcdObjectKey client.ObjectKey) ctrlutils.ReconcileStepResult {
-	operatorCtx := resource.NewOperatorContext(ctx, r.client, r.logger, etcdObjectKey)
+func (r *Reconciler) triggerDeletionFlow(ctx resource.OperatorContext, logger logr.Logger, etcdObjectKey client.ObjectKey) ctrlutils.ReconcileStepResult {
 	deleteStepFns := []deleteStepFn{
 		r.recordDeletionStartOperation,
 		r.deleteEtcdResources,
@@ -27,8 +25,8 @@ func (r *Reconciler) triggerDeletionFlow(ctx context.Context, logger logr.Logger
 		r.removeFinalizer,
 	}
 	for _, fn := range deleteStepFns {
-		if stepResult := fn(operatorCtx, logger, etcdObjectKey); ctrlutils.ShortCircuitReconcile(stepResult) {
-			return r.recordIncompleteDeletionOperation(operatorCtx, logger, etcdObjectKey, stepResult)
+		if stepResult := fn(ctx, logger, etcdObjectKey); ctrlutils.ShortCircuitReconcileFlow(stepResult) {
+			return r.recordIncompleteDeletionOperation(ctx, logger, etcdObjectKey, stepResult)
 		}
 	}
 	return ctrlutils.DoNotRequeue()
@@ -36,7 +34,7 @@ func (r *Reconciler) triggerDeletionFlow(ctx context.Context, logger logr.Logger
 
 func (r *Reconciler) deleteEtcdResources(ctx resource.OperatorContext, logger logr.Logger, etcdObjKey client.ObjectKey) ctrlutils.ReconcileStepResult {
 	etcd := &druidv1alpha1.Etcd{}
-	if result := r.getLatestEtcd(ctx, etcdObjKey, etcd); ctrlutils.ShortCircuitReconcile(result) {
+	if result := r.getLatestEtcd(ctx, etcdObjKey, etcd); ctrlutils.ShortCircuitReconcileFlow(result) {
 		return result
 	}
 	operators := r.operatorRegistry.AllOperators()
@@ -59,7 +57,7 @@ func (r *Reconciler) deleteEtcdResources(ctx resource.OperatorContext, logger lo
 
 func (r *Reconciler) verifyNoResourcesAwaitCleanUp(ctx resource.OperatorContext, logger logr.Logger, etcdObjKey client.ObjectKey) ctrlutils.ReconcileStepResult {
 	etcd := &druidv1alpha1.Etcd{}
-	if result := r.getLatestEtcd(ctx, etcdObjKey, etcd); ctrlutils.ShortCircuitReconcile(result) {
+	if result := r.getLatestEtcd(ctx, etcdObjKey, etcd); ctrlutils.ShortCircuitReconcileFlow(result) {
 		return result
 	}
 	operators := r.operatorRegistry.AllOperators()
@@ -81,7 +79,7 @@ func (r *Reconciler) verifyNoResourcesAwaitCleanUp(ctx resource.OperatorContext,
 
 func (r *Reconciler) removeFinalizer(ctx resource.OperatorContext, logger logr.Logger, etcdObjKey client.ObjectKey) ctrlutils.ReconcileStepResult {
 	etcd := &druidv1alpha1.Etcd{}
-	if result := r.getLatestEtcd(ctx, etcdObjKey, etcd); ctrlutils.ShortCircuitReconcile(result) {
+	if result := r.getLatestEtcd(ctx, etcdObjKey, etcd); ctrlutils.ShortCircuitReconcileFlow(result) {
 		return result
 	}
 	logger.Info("Removing finalizer", "finalizerName", common.FinalizerName)
@@ -93,7 +91,7 @@ func (r *Reconciler) removeFinalizer(ctx resource.OperatorContext, logger logr.L
 
 func (r *Reconciler) recordDeletionStartOperation(ctx resource.OperatorContext, logger logr.Logger, etcdObjKey client.ObjectKey) ctrlutils.ReconcileStepResult {
 	etcd := &druidv1alpha1.Etcd{}
-	if result := r.getLatestEtcd(ctx, etcdObjKey, etcd); ctrlutils.ShortCircuitReconcile(result) {
+	if result := r.getLatestEtcd(ctx, etcdObjKey, etcd); ctrlutils.ShortCircuitReconcileFlow(result) {
 		return result
 	}
 	if err := r.lastOpErrRecorder.RecordStart(ctx, etcd, druidv1alpha1.LastOperationTypeDelete); err != nil {
@@ -105,7 +103,7 @@ func (r *Reconciler) recordDeletionStartOperation(ctx resource.OperatorContext, 
 
 func (r *Reconciler) recordIncompleteDeletionOperation(ctx resource.OperatorContext, logger logr.Logger, etcdObjKey client.ObjectKey, exitReconcileStepResult ctrlutils.ReconcileStepResult) ctrlutils.ReconcileStepResult {
 	etcd := &druidv1alpha1.Etcd{}
-	if result := r.getLatestEtcd(ctx, etcdObjKey, etcd); ctrlutils.ShortCircuitReconcile(result) {
+	if result := r.getLatestEtcd(ctx, etcdObjKey, etcd); ctrlutils.ShortCircuitReconcileFlow(result) {
 		return result
 	}
 	if err := r.lastOpErrRecorder.RecordError(ctx, etcd, druidv1alpha1.LastOperationTypeDelete, exitReconcileStepResult.GetDescription(), exitReconcileStepResult.GetErrors()...); err != nil {

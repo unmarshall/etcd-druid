@@ -23,12 +23,16 @@ const (
 
 type OperatorContext struct {
 	context.Context
-	Data map[string]string
+	RunID  string
+	Logger logr.Logger
+	Data   map[string]string
 }
 
-func NewOperatorContext(ctx context.Context, client client.Client, logger logr.Logger, objectKey client.ObjectKey) OperatorContext {
+func NewOperatorContext(ctx context.Context, logger logr.Logger, runID string) OperatorContext {
 	return OperatorContext{
 		Context: ctx,
+		RunID:   runID,
+		Logger:  logger,
 		Data:    make(map[string]string),
 	}
 }

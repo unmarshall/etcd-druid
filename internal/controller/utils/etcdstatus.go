@@ -1,11 +1,11 @@
 package utils
 
 import (
-	"context"
 	"time"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	druiderr "github.com/gardener/etcd-druid/internal/errors"
+	"github.com/gardener/etcd-druid/internal/resource"
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -13,9 +13,9 @@ import (
 
 // LastOperationErrorRecorder records etcd.Status.LastOperation and etcd.Status.LastErrors
 type LastOperationErrorRecorder interface {
-	RecordStart(ctx context.Context, etcd *druidv1alpha1.Etcd, operationType druidv1alpha1.LastOperationType) error
-	RecordSuccess(ctx context.Context, etcd *druidv1alpha1.Etcd, operationType druidv1alpha1.LastOperationType) error
-	RecordError(ctx context.Context, etcd *druidv1alpha1.Etcd, operationType druidv1alpha1.LastOperationType, description string, errs ...error) error
+	RecordStart(ctx resource.OperatorContext, etcd *druidv1alpha1.Etcd, operationType druidv1alpha1.LastOperationType) error
+	RecordSuccess(ctx resource.OperatorContext, etcd *druidv1alpha1.Etcd, operationType druidv1alpha1.LastOperationType) error
+	RecordError(ctx resource.OperatorContext, etcd *druidv1alpha1.Etcd, operationType druidv1alpha1.LastOperationType, description string, errs ...error) error
 }
 
 func NewLastOperationErrorRecorder(client client.Client, logger logr.Logger) LastOperationErrorRecorder {
@@ -31,7 +31,7 @@ type lastOpErrRecorder struct {
 	logger    logr.Logger
 }
 
-func (l *lastOpErrRecorder) RecordStart(ctx context.Context, etcd *druidv1alpha1.Etcd, operationType druidv1alpha1.LastOperationType) error {
+func (l *lastOpErrRecorder) RecordStart(ctx resource.OperatorContext, etcd *druidv1alpha1.Etcd, operationType druidv1alpha1.LastOperationType) error {
 	const (
 		etcdReconcileStarted string = "Etcd cluster reconciliation is in progress"
 		etcdDeletionStarted  string = "Etcd cluster deletion is in progress"
@@ -46,7 +46,7 @@ func (l *lastOpErrRecorder) RecordStart(ctx context.Context, etcd *druidv1alpha1
 	return l.recordLastOperationAndErrors(ctx, etcd, operationType, druidv1alpha1.LastOperationStateProcessing, description)
 }
 
-func (l *lastOpErrRecorder) RecordSuccess(ctx context.Context, etcd *druidv1alpha1.Etcd, operationType druidv1alpha1.LastOperationType) error {
+func (l *lastOpErrRecorder) RecordSuccess(ctx resource.OperatorContext, etcd *druidv1alpha1.Etcd, operationType druidv1alpha1.LastOperationType) error {
 	const (
 		etcdReconciledSuccessfully string = "Etcd cluster has been successfully reconciled"
 		etcdDeletedSuccessfully    string = "Etcd cluster has been successfully deleted"
@@ -62,19 +62,20 @@ func (l *lastOpErrRecorder) RecordSuccess(ctx context.Context, etcd *druidv1alph
 	return l.recordLastOperationAndErrors(ctx, etcd, operationType, druidv1alpha1.LastOperationStateSucceeded, description)
 }
 
-func (l *lastOpErrRecorder) RecordError(ctx context.Context, etcd *druidv1alpha1.Etcd, operationType druidv1alpha1.LastOperationType, description string, errs ...error) error {
+func (l *lastOpErrRecorder) RecordError(ctx resource.OperatorContext, etcd *druidv1alpha1.Etcd, operationType druidv1alpha1.LastOperationType, description string, errs ...error) error {
 	description += " Operation will be retried."
 	lastErrors := druiderr.MapToLastErrors(errs)
 	return l.recordLastOperationAndErrors(ctx, etcd, operationType, druidv1alpha1.LastOperationStateError, description, lastErrors...)
 }
 
-func (l *lastOpErrRecorder) recordLastOperationAndErrors(ctx context.Context, etcd *druidv1alpha1.Etcd, operationType druidv1alpha1.LastOperationType, operationState druidv1alpha1.LastOperationState, description string, lastErrors ...druidv1alpha1.LastError) error {
+func (l *lastOpErrRecorder) recordLastOperationAndErrors(ctx resource.OperatorContext, etcd *druidv1alpha1.Etcd, operationType druidv1alpha1.LastOperationType, operationState druidv1alpha1.LastOperationState, description string, lastErrors ...druidv1alpha1.LastError) error {
 	etcdPatch := client.StrategicMergeFrom(etcd.DeepCopy())
 
 	// update last operation
 	if etcd.Status.LastOperation == nil {
 		etcd.Status.LastOperation = &druidv1alpha1.LastOperation{}
 	}
+	etcd.Status.LastOperation.RunID = ctx.RunID
 	etcd.Status.LastOperation.Type = operationType
 	etcd.Status.LastOperation.State = operationState
 	etcd.Status.LastOperation.LastUpdateTime = metav1.NewTime(time.Now().UTC())
