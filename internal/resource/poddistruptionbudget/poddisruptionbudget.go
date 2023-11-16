@@ -87,6 +87,5 @@ func computePDBMinAvailable(etcdReplicas int) int32 {
 	if etcdReplicas <= 1 {
 		return 0
 	}
-	clusterSize := int(etcdReplicas)
-	return int32(clusterSize/2 + 1)
+	return int32(etcdReplicas/2 + 1)
 }
