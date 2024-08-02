@@ -9,10 +9,10 @@
 [![Release](https://img.shields.io/github/v/release/gardener/etcd-druid.svg?style=flat)](https://github.com/gardener/etcd-druid)
 [![Go Reference](https://pkg.go.dev/badge/github.com/gardener/etcd-druid.svg)](https://pkg.go.dev/github.com/gardener/etcd-druid)
 
-`etcd-druid` is an [etcd](https://github.com/etcd-io/etcd) [operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) which makes it easy to configure, provision, reconcile and monitor etcd clusters. It enables management of an etcd cluster through a [custom-resource](config/crd/bases/crd-druid.gardener.cloud_etcds.yaml). 
+`etcd-druid` is an [etcd](https://github.com/etcd-io/etcd) [operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) which makes it easy to configure, provision, reconcile and monitor etcd clusters. It enables management of an etcd cluster through [declarative Kubernetes API model](config/crd/bases/crd-druid.gardener.cloud_etcds.yaml). 
 
 In every etcd cluster managed by `etcd-druid`, each etcd member is a two container `Pod` which consists of:
-- [etcd-wrapper](https://github.com/gardener/etcd-wrapper) which manages the lifecycle (validation, initialization) of an embedded etcd.
+- [etcd-wrapper](https://github.com/gardener/etcd-wrapper) which manages the lifecycle (validation & initialization) of an embedded etcd.
 - [etcd-backup-restore](https://github.com/gardener/etcd-backup-restore) sidecar which currently provides the following capabilities (the list is not comprehensive):
   - [etcd](https://github.com/etcd-io/etcd) DB validation.
   - Scheduled [etcd ](https://github.com/etcd-io/etcd)DB defragmentation.
@@ -31,13 +31,17 @@ In every etcd cluster managed by `etcd-druid`, each etcd member is a two contain
 
 If you are looking to contribute or you wish to quickly try out druid then you can use a [Kind](https://kind.sigs.k8s.io/) cluster based setup.
 
-<< Insert a setup recording here >>
+<< TODO: Embed the setup recording here >>
 
 For detailed setup instructions read the `/docs` 
 
+## Roadmap
+
+Upcoming enhancements are captured as druid-enhancement-proposal [a.k.a DEP] [here](https://github.com/gardener/etcd-druid/tree/4e9971aba3c3880a4cb6583d05843eabb8ca1409/docs/proposals).
+
 ## Contributions
 
-<< TODO >>
+If you wish to contribute then please see our [guidelines](https://github.com/gardener/etcd-druid/blob/4e9971aba3c3880a4cb6583d05843eabb8ca1409/CONTRIBUTING.md).
 
 ## Feedback and Support
 We always look forward to active community engagement. Please report bugs or suggestions on how we can enhance `etcd-druid` on [Github Issues](https://github.com/gardener/etcd-druid/issues).
