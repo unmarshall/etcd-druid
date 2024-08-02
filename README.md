@@ -1,6 +1,6 @@
 # etcd-druid
 
-<image src="assets/etcd-druid-logo.png" style="width:300px"></image>
+<image src="logo/etcd-druid-logo.png" style="width:300px"></image>
 
 [![REUSE status](https://api.reuse.software/badge/github.com/gardener/etcd-druid)](https://api.reuse.software/info/github.com/gardener/etcd-druid)
 [![CI Build status](https://concourse.ci.gardener.cloud/api/v1/teams/gardener/pipelines/etcd-druid-master/jobs/master-head-update-job/badge)](https://concourse.ci.gardener.cloud/teams/gardener/pipelines/etcd-druid-master/jobs/master-head-update-job)
@@ -31,11 +31,11 @@ In every etcd cluster managed by `etcd-druid`, each etcd member is a two contain
 
 ## Start using or developing `etcd-druid` locally
 
-If you are looking to contribute or you wish to quickly try out druid then you can use a [Kind](https://kind.sigs.k8s.io/) cluster based setup.
+If you are looking to try out druid then you can use a [Kind](https://kind.sigs.k8s.io/) cluster based setup. 
 
-![Deploy an etcd cluster](assets/etcd-druid-demo.gif)
+![Deploy an etcd cluster](docs/assets/etcd-druid-demo.gif)
 
-For detailed setup instructions read the `/docs`.
+You can also read the [developer-docs](https://github.com/gardener/etcd-druid/tree/fb44e676152896469a731ceb8b5276ea7d038248/docs/development) for detailed information on local-setup, development and testing.
 
 ## Roadmap
 
