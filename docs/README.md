@@ -10,7 +10,7 @@
 ## Development
 
 * [Etcd Cluster Components](development/etcd-cluster-components.md)
-* [etcd Network Latency](development/etcd-network-latency.md)
+* [etcd Network Latency](benchmark/etcd-network-latency.md)
 * [Getting started locally using azurite emulator](development/getting-started-locally-azurite.md)
 * [Getting started locally using localstack emulator](development/getting-started-locally-localstack.md)
 * [Getting started locally](development/getting-started-locally.md)
@@ -22,11 +22,19 @@
 * [etcd-druid CLI Flags](deployment/cli-flags.md)
 * [Feature Gates](deployment/feature-gates.md)
 
+## Monitoring
+
+* [Metrics](monitoring/metrics.md)
+
 ## Operations
 
-* [Metrics](operations/metrics.md)
 * [Recovery from Permanent Quorum Loss in etcd cluster](operations/recovery-from-permanent-quorum-loss-in-etcd-cluster.md)
 * [Restoring single member in a Multi-Node etcd cluster](operations/restoring-single-member-in-multi-node-etcd-cluster.md)
+
+## Benchmarks
+
+* [etcd Network Latency](benchmark/etcd-network-latency.md)
+
 
 ## Proposals
 
