@@ -24,17 +24,15 @@ For every `Etcd` cluster that is provisioned by `etcd-druid` it deploys a set of
 
 > For detailed information on each container you can visit [etcd-wrapper](https://github.com/gardener/etcd-wrapper) and [etcd-backup-restore](https://github.com/gardener/etcd-backup-restore) respositories.
 
-## Client & Peer Service
 
-To enable clients to connect to an etcd cluster a ClusterIP `Client` [Service](https://kubernetes.io/docs/concepts/services-networking/service/) is created. To enable `etcd` members to talk to each other(for discovery, leader-election, raft consensus etc.) `etcd-druid` also creates a [Headless Service](https://kubernetes.io/docs/concepts/services-networking/service/#headless-services).
-
-**Code reference:** [Client-Service-Component](https://github.com/gardener/etcd-druid/tree/480213808813c5282b19aff5f3fd6868529e779c/internal/component/clientservice) & [Peer-Service-Component](https://github.com/gardener/etcd-druid/tree/480213808813c5282b19aff5f3fd6868529e779c/internal/component/peerservice)
 
 ## ConfigMap
 
 Every `etcd` member requires [configuration](https://etcd.io/docs/v3.4/op-guide/configuration/) with which it must be started. `etcd-druid` creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) which gets mounted onto both the containers of a pod in the  `StatefulSet`.
 
-**Code reference:** [ConfigMap-Component](https://github.com/gardener/etcd-druid/tree/480213808813c5282b19aff5f3fd6868529e779c/internal/component/configmap) 
+**Code reference:** [ConfigMap-Component](https://github.com/gardener/etcd-druid/tree/480213808813c5282b19aff5f3fd6868529e779c/internal/component/configmap)
+
+
 
 ## PodDisruptionBudget
 
@@ -43,6 +41,52 @@ An etcd cluster requires quorum for all write operations. Clients can additional
 To ensure that etcd pods are not evicted more than its failure tolerance, `etcd-druid` creates a [PodDisruptionBudget](https://kubernetes.io/docs/concepts/workloads/pods/disruptions/#pod-disruption-budgets). 
 
 **Code reference:** [PodDisruptionBudget-Component](https://github.com/gardener/etcd-druid/tree/480213808813c5282b19aff5f3fd6868529e779c/internal/component/poddistruptionbudget)
+
+
+
+## ServiceAccount
+
+`etch-backup-restore` container running as a side-car in every etcd-member, requires permissions to access resources like `Lease`, `StatefulSet` etc. A dedicated [ServiceAccount](https://kubernetes.io/docs/concepts/security/service-accounts/) is created per `Etcd` cluster for this purpose.
+
+**Code reference:** [ServiceAccount-Component](https://github.com/gardener/etcd-druid/tree/3383e0219a6c21c6ef1d5610db964cc3524807c8/internal/component/serviceaccount)
+
+
+
+## Role & RoleBinding
+
+`etch-backup-restore` container running as a side-car in every etcd-member, requires permissions to access resources like `Lease`, `StatefulSet` etc. A dedicated [Role]() and [RoleBinding]() is created and linked to the [ServiceAccount](https://kubernetes.io/docs/concepts/security/service-accounts/) created per `Etcd` cluster.
+
+**Code reference:** [Role-Component](https://github.com/gardener/etcd-druid/tree/3383e0219a6c21c6ef1d5610db964cc3524807c8/internal/component/role) & [RoleBinding-Component](https://github.com/gardener/etcd-druid/tree/master/internal/component/rolebinding)
+
+
+
+## Client & Peer Service
+
+To enable clients to connect to an etcd cluster a ClusterIP `Client` [Service](https://kubernetes.io/docs/concepts/services-networking/service/) is created. To enable `etcd` members to talk to each other(for discovery, leader-election, raft consensus etc.) `etcd-druid` also creates a [Headless Service](https://kubernetes.io/docs/concepts/services-networking/service/#headless-services).
+
+**Code reference:** [Client-Service-Component](https://github.com/gardener/etcd-druid/tree/480213808813c5282b19aff5f3fd6868529e779c/internal/component/clientservice) & [Peer-Service-Component](https://github.com/gardener/etcd-druid/tree/480213808813c5282b19aff5f3fd6868529e779c/internal/component/peerservice)
+
+
+
+## Member Lease
+
+Every member in an `Etcd` cluster has a dedicated [Lease](https://kubernetes.io/docs/concepts/architecture/leases/) that gets created which signifies that the member is alive. It is the responsibility of the `etcd-backup-store` side-car container to periodically renew the lease.
+
+> Today the lease object is also used to indicate the member-ID and the role of the member in an etcd cluster. Possible roles are `Leader`, `Follower` and `Learner`. This will change in the future with [EtcdMember resource](https://github.com/gardener/etcd-druid/blob/3383e0219a6c21c6ef1d5610db964cc3524807c8/docs/proposals/04-etcd-member-custom-resource.md).
+
+**Code reference:** [Member-Lease-Component](https://github.com/gardener/etcd-druid/tree/3383e0219a6c21c6ef1d5610db964cc3524807c8/internal/component/memberlease)
+
+
+
+## Delta & Full Snapshot Leases
+
+One of the responsibilities of `etcd-backup-restore` container is to take periodic or threshold based snapshots (delta and full) of the etcd DB.  Today `etcd-backup-restore` communicates the end-revision of the latest full/delta snapshots to `etcd-druid` operator via leases.
+
+`etcd-druid` creates two [Lease](https://kubernetes.io/docs/concepts/architecture/leases/) resources one for delta and another for full snapshot. This information is used by the operator to trigger `snapshot-compaction` jobs.
+
+> In future these leases will be replaced by [EtcdMember resource](https://github.com/gardener/etcd-druid/blob/3383e0219a6c21c6ef1d5610db964cc3524807c8/docs/proposals/04-etcd-member-custom-resource.md).
+
+**Code reference:** [Snapshot-Lease-Component](https://github.com/gardener/etcd-druid/tree/3383e0219a6c21c6ef1d5610db964cc3524807c8/internal/component/snapshotlease)
 
 
 
