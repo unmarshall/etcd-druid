@@ -14,12 +14,13 @@ Before we can setup `etcd-druid` and use it to provision `Etcd` clusters, we nee
 > make kind-up
 ```
 
-This command sets up a new Kind cluster and stores the kubeconfig at `./hack/kind/kubeconfig`. To target this newly created cluster, set the `KUBECONFIG` environment variable to the kubeconfig file.
+This command sets up a new Kind cluster and stores the kubeconfig at `./hack/kind/kubeconfig`.  Additionally, this command also deploys a local container registry as a docker container. This ensures faster image push/pull times. The local registry can be accessed as `localhost:5001` for pushing and pulling images. 
+
+To target this newly created cluster, set the `KUBECONFIG` environment variable to the kubeconfig file.
+
 ```bash
 > export KUBECONFIG=$PWD/hack/kind/kubeconfig
 ```
-
-Additionally, this command also deploys a local container registry as a docker container. This ensures faster image push/pull times. The local registry can be accessed as `localhost:5001` for pushing and pulling images.
 
 > **Note:**  If you wish to configure kind cluster differently then you can directly invoke the script and check its help to know about all configuration options.
 >
