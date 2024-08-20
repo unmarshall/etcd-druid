@@ -10,10 +10,9 @@
 ## Development
 
 * [Etcd Cluster Components](development/etcd-cluster-components.md)
-* [etcd Network Latency](benchmark/etcd-network-latency.md)
 * [Getting started locally using azurite emulator](development/getting-started-locally-azurite.md)
 * [Getting started locally using localstack emulator](development/getting-started-locally-localstack.md)
-* [Getting started locally](development/getting-started-locally.md)
+* [Getting started locally](development/getting-started/getting-started-locally.md)
 * [Testing(Unit, Integration and E2E Tests)](development/testing.md)
 * [Local End-To-End Tests](development/local-e2e-tests.md)
 

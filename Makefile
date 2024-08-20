@@ -14,8 +14,9 @@ IMAGE_BUILD_TAG     := $(VERSION)
 BUILD_DIR           := build
 PROVIDERS           := ""
 BUCKET_NAME         := "e2e-test"
-KUBECONFIG_PATH     := $(HACK_DIR)/e2e-test/infrastructure/kind/kubeconfig
 TEST_COVER 			:= "true"
+KUBECONFIG_PATH     := $(HACK_DIR)/kind/kubeconfig
+
 IMG ?= ${IMAGE_REPOSITORY}:${IMAGE_BUILD_TAG}
 
 # Tools
@@ -164,8 +165,8 @@ kind-up kind-down ci-e2e-kind ci-e2e-kind-azure deploy-localstack deploy-azurite
 
 .PHONY: kind-up
 kind-up: $(KIND)
-	@printf "\n\033[0;33m📌 NOTE: To target the newly created KinD cluster, please run the following command:\n\n    export KUBECONFIG=$(KUBECONFIG_PATH)\n\033[0m\n"
 	@$(HACK_DIR)/kind-up.sh
+	@printf "\n\033[0;33m📌 NOTE: To target the newly created KinD cluster, please run the following command:\n\n    export KUBECONFIG=$(KUBECONFIG_PATH)\n\033[0m\n"
 
 .PHONY: kind-down
 kind-down: $(KIND)
