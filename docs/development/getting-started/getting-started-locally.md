@@ -108,7 +108,7 @@ To apply the secret run:
 
 ## 04-Preparing Etcd CR
 
-Choose an appropriate variant of `Etcd` CR from [samples directory](../../config/samples/).
+Choose an appropriate variant of `Etcd` CR from [samples directory](../../../config/samples/).
 
 If you wish to enable functionality to backup delta & full snapshots then uncomment `spec.backup.store` section.
 
