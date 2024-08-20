@@ -108,7 +108,88 @@ To apply the secret run:
 
 ## 04-Preparing Etcd CR
 
+Choose an appropriate variant of `Etcd` CR from [samples directory](../../config/samples/).
 
+If you wish to enable functionality to backup delta & full snapshots then uncomment `spec.backup.store` section.
 
-## 03-Applying Etcd CR
+```yaml
+# Configuration for storage provider
+store:
+  secretRef:
+    name: etcd-backup-secret-name
+  container: object-storage-container-name
+  provider: aws # options: aws,azure,gcp,openstack,alicloud,dell,openshift,local
+  prefix: etcd-test
+```
 
+Brief explanation of the keys:
+
+* `secretRef.name` is the name of the secret that was applied as mentioned above.
+* `store.container` is the object storage bucket name.
+* `store.provider` is the bucket provider. Pick from the options mentioned in comment.
+* `store.prefix` is the folder name that you want to use for your snapshots inside the bucket.
+
+> **Note:** For developer convenience we have provided object store emulator specific etcd CR variants which can be used as if as well.
+
+## 05-Applying Etcd CR
+
+Create the Etcd CR (Custom Resource) by applying the Etcd yaml to the cluster
+```bash
+> kubectl apply -f <path-to-etcd-cr-yaml>
+```
+
+## 06-Verify the Etcd Cluster
+
+To obtain information on the etcd cluster you can invoke the following command:
+```bash
+> kubectl get etcd -o=wide
+```
+
+We adhere to a naming convention for all resources that are provisioned for an `Etcd` cluster. Refer to [etcd-cluster-components](../etcd-cluster-components.md) document to get details of all resources that re provisioned.
+
+### Verify Etcd Pods' Functionality
+
+`etcd-wrapper` uses a [distroless](https://github.com/GoogleContainerTools/distroless) image, which lacks a shell. To interact with etcd, use an [Ephemeral container](https://kubernetes.io/docs/concepts/workloads/pods/ephemeral-containers/) as a debug container. Refer to this [documentation](https://github.com/gardener/etcd-wrapper/blob/9040608291c17799ab33012efce628645c3eeedd/docs/deployment/ops.md#operations--debugging) for building and using an ephemeral container which gets attached to the `etcd-wrapper` pod. 
+
+```bash
+# Put a key-value pair into the etcd 
+> etcdctl put <key1> <value1>
+# Retrieve all key-value pairs from the etcd db
+> etcdctl get --prefix ""
+```
+
+For a multi-node etcd cluster, insert the key-value pair using the `etcd` container of one etcd member and retrieve it from the `etcd` container of another member to verify consensus among the multiple etcd members.
+
+## 07-Updating Etcd CR
+
+`Etcd` CR can be updated with new changes. To ensure that `etcd-druid` reconciles the changes you can opt for one of the below options:
+
+* While setting up druid if you have chosen to switch on `auto-reconcile` via CLI flag `--enable-etcd-spec-auto-reconcile` then any changes to the `Etcd` spec will be automatically reconciled.
+
+* If `--enable-etcd-spec-auto-reconcile` is switched off, then by default `Etcd` spec changes are not reconciled. One can intruct etcd-druid to reconcile an `Etcd` by putting `gardener.cloud/operation: reconcile` annotation on the `Etcd` CR. Once the reconciliation is successfully completed then this annotation will be removed by etcd-druid. You can use the following command to add this annotation:
+  ```bash
+  # Annotate etcd-test CR to reconcile
+  kubectl annotate etcd etcd-test gardener.cloud/operation="reconcile"
+  ```
+
+## 08-Cleaning up the setup
+
+If you wish to only delete the `Etcd` cluster then you can use the following command:
+```bash
+> kubectl delete etcd <etcd-name>
+```
+
+This will add the `deletionTimestamp` to the `Etcd` resource.  At the time the creation of the `Etcd` cluster, etcd-druid will add a finalizer to ensure that it cleans up all `Etcd` cluster resources before the CR is removed. 
+```yaml
+  finalizers:
+  - druid.gardener.cloud/etcd-druid
+```
+
+etcd-druid will automatically pick up the deletion event and attempt clean up `Etcd` cluster resources. It will only remove the finaliser once all resources have been cleaned up.
+
+If you wish to delete the kind cluster then you can use the following make target:
+```bash
+> make kind-down
+```
+
+This cleans up the entire setup as the kind cluster gets deleted.
