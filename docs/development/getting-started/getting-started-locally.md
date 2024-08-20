@@ -4,7 +4,7 @@ This document will guide you on how to setup `etcd-druid` on your local machine 
 
 ## 00-Prerequisites
 
-Before we can setup `etcd-druid` and use it to provision `Etcd` clusters, we need to prepare the development environment. Follow the [Prepare Dev Environment Guide](prepare-dev-environment.md) for detailed instructions.
+Before we can setup `etcd-druid` and use it to provision `Etcd` clusters, we need to prepare the development environment. Follow the [Prepare Dev Environment Guide](../prepare-dev-environment.md) for detailed instructions.
 
 ## 01-Setting up KIND cluster
 
@@ -85,10 +85,10 @@ This means that when a goroutine is paused on a breakpoint, then all the other g
 
 An `Etcd` cluster provisioned via etcd-druid provides a capability to take regular delta and full snapshots and stored them in an object store. You can enable this functionality by ensuring that you fill in [spec.backup.store](https://github.com/gardener/etcd-druid/blob/3383e0219a6c21c6ef1d5610db964cc3524807c8/config/samples/druid_v1alpha1_etcd.yaml#L49-L54) section of the `Etcd` CR. 
 
-| Backup Store Variant          | Setup Guide                                              |
-| ----------------------------- | -------------------------------------------------------- |
-| Azure Object Storage Emulator | [Manage Azurite](manage-azure-emulator.md) (Steps 00-03) |
-| S3 Object Store Emulator      | [Manage LocalStack](manage-s3-emulator.md) (Steps 00-03) |
+| Backup Store Variant          | Setup Guide                                                |
+| ----------------------------- | ---------------------------------------------------------- |
+| Azure Object Storage Emulator | [Manage Azurite](manage-azurite-emulator.md) (Steps 00-03) |
+| S3 Object Store Emulator      | [Manage LocalStack](manage-s3-emulator.md) (Steps 00-03)   |
 
 ### Setting up Cloud Provider Object Store Secret
 
