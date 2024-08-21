@@ -11,6 +11,9 @@
 
 * [Prepare Dev Environment](development/prepare-dev-environment.md)
 * [Getting started locally](development/getting-started/getting-started-locally.md)
+* [Dependency Management](development/dependency-management.md)
+* [Changing the API](development/changing-api.md)
+* [Raising a Pull Request](development/raising-a-pr.md)
 * [Etcd Cluster Components](development/etcd-cluster-components.md)
 * [Testing(Unit, Integration and E2E Tests)](development/testing.md)
 
