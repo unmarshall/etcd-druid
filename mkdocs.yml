@@ -1,0 +1,63 @@
+# Project information
+site_name: etcd-druid
+repo_url: https://github.com/unmarshall/etcd-druid
+theme:
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.indexes
+    - navigation.top
+    - navigation.tabs
+    - navigation.sections
+    - navigation.path
+    - navigation.footer
+    - toc.integrate
+    - toc.follow
+  name: material
+  logo: assets/etcd-druid-logo.png
+  favicon: assets/etcd-druid-logo.png
+  palette:
+  - media: "(prefers-color-scheme: light)"
+    scheme: default
+    primary: white
+    toggle:
+      icon: material/weather-night
+      name: Switch to dark mode
+  - media: "(prefers-color-scheme: dark)"
+    scheme: slate
+    primary: black
+    toggle:
+      icon: material/weather-sunny
+      name: Switch to light mode
+  font:
+    text: 'Work Sans'
+
+plugins:
+  - search
+# Markdown extensions
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.snippets
+  - codehilite
+  - admonition
+  - abbr
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Development:
+      - Prepare Dev Environment: development/prepare-dev-environment.md
+      - Getting Started: development/getting-started/getting-started-locally.md
+      - Testing: development/testing.md
+      - Changing API: development/changing-api.md
+      - Raising a PR: development/raising-a-pr.md
+      - Dependency Management: development/dependency-management.md
+      - Etcd Cluster Components: development/etcd-cluster-components.md
+
+extras:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/unmarshall

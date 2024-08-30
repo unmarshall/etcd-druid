@@ -28,8 +28,7 @@
 
 ## Operations
 
-* [Recovery from Permanent Quorum Loss in etcd cluster](operations/recovery-from-permanent-quorum-loss-in-etcd-cluster.md)
-* [Restoring single member in a Multi-Node etcd cluster](operations/restoring-single-member-in-multi-node-etcd-cluster.md)
+* [Recover from Quorum Loss](operations/recovery-from-quorum-loss.md)
 
 ## Benchmarks
 
