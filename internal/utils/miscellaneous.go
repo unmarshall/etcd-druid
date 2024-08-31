@@ -6,8 +6,10 @@ package utils
 
 import (
 	"fmt"
+	"github.com/robfig/cron/v3"
 	"maps"
 	"strings"
+	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -56,10 +58,26 @@ func IsEmptyString(s string) bool {
 	return len(strings.TrimSpace(s)) == 0
 }
 
-// IfConditionOr implements a simple ternary operator, if the passed condition is true then trueVal is returned else falseVal is returned.
+// IfConditionOr implements a simple ternary operator, if the passed conditionbkp is true then trueVal is returned else falseVal is returned.
 func IfConditionOr[T any](condition bool, trueVal, falseVal T) T {
 	if condition {
 		return trueVal
 	}
 	return falseVal
+}
+
+// ComputeScheduleInterval computes the interval between two activations for the given cron schedule.
+// Assumes that every cron activation is at equal intervals apart, based on cron schedules such as
+// "once every X hours", "once every Y days", "at 1:00pm on every Tuesday", etc.
+// TODO: write a new function to accurately compute the previous activation time from the cron schedule
+// in order to compute when the previous activation of the cron schedule was supposed to have occurred,
+// instead of relying on the assumption that all the cron activations are evenly spaced.
+func ComputeScheduleInterval(cronSchedule string) (time.Duration, error) {
+	schedule, err := cron.ParseStandard(cronSchedule)
+	if err != nil {
+		return 0, err
+	}
+	nextScheduledTime := schedule.Next(time.Now())
+	nextNextScheduledTime := schedule.Next(nextScheduledTime)
+	return nextNextScheduledTime.Sub(nextScheduledTime), nil
 }
