@@ -18,7 +18,9 @@ func ProbeConditions(ctx context.Context, cl client.Client, etcd *druidv1alpha1.
 	probers := []Prober[druidv1alpha1.Condition]{
 		condition.NewBackupReadyProber(cl),
 		condition.NewDataVolumesReadyProber(cl),
+		condition.NewEtcdClusterReadyProber(cl),
 	}
+
 	conditions := make([]druidv1alpha1.Condition, 0, 4)
 	for _, p := range probers {
 		conditions = append(conditions, p.Probe(ctx, etcd)...)
