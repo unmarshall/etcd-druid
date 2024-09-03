@@ -6,6 +6,7 @@
 
 * [Controllers](concepts/controllers.md)
 * [Webhooks](concepts/webhooks.md)
+* [Etcd Cluster Components](concepts/etcd-cluster-components.md)
 
 ## Development
 
@@ -14,13 +15,13 @@
 * [Dependency Management](development/dependency-management.md)
 * [Changing the API](development/changing-api.md)
 * [Raising a Pull Request](development/raising-a-pr.md)
-* [Etcd Cluster Components](development/etcd-cluster-components.md)
 * [Testing(Unit, Integration and E2E Tests)](development/testing.md)
 
 ## Deployment
 
 * [etcd-druid CLI Flags](deployment/cli-flags.md)
 * [Feature Gates](deployment/feature-gates.md)
+* [Supported K8S versions](deployment/supported_k8s_versions.md)
 
 ## Monitoring
 
@@ -43,7 +44,3 @@
 * [DEP-3: Scaling up an Etcd cluster](proposals/03-scaling-up-an-etcd-cluster.md)
 * [DEP-4: Etcd Member custom resource](proposals/04-etcd-member-custom-resource.md)
 * [DEP-5: Etcd Operator Tasks](proposals/05-etcd-operator-tasks.md)
-
-## Usage
-
-* [Supported K8S versions](usage/supported_k8s_versions.md)

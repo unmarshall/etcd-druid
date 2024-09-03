@@ -146,7 +146,7 @@ To obtain information on the etcd cluster you can invoke the following command:
 > kubectl get etcd -o=wide
 ```
 
-We adhere to a naming convention for all resources that are provisioned for an `Etcd` cluster. Refer to [etcd-cluster-components](../etcd-cluster-components.md) document to get details of all resources that re provisioned.
+We adhere to a naming convention for all resources that are provisioned for an `Etcd` cluster. Refer to [etcd-cluster-components](../../concepts/etcd-cluster-components.md) document to get details of all resources that re provisioned.
 
 ### Verify Etcd Pods' Functionality
 

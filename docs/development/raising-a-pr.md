@@ -20,7 +20,7 @@ For every pull-request, it is ***mandatory*** to raise an [Issue](https://github
 
 * If you are introducing new go mod dependencies then please read [Dependency Management documentation](dependency-management.md).
 
-* If you are introducing a new `Etcd` cluster component then please read [Add new Cluster Component documentation](etcd-cluster-components.md#add- a-new-etcd-cluster-component).
+* If you are introducing a new `Etcd` cluster component then please read [Add new Cluster Component documentation](../concepts/etcd-cluster-components.md#add-a-new-etcd-cluster-component).
 
 * For guidance on testing, follow the detailed instructions [here](testing.md).
 
