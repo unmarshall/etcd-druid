@@ -11,16 +11,19 @@
 ## Development
 
 * [Prepare Dev Environment](development/prepare-dev-environment.md)
-* [Getting started locally](development/getting-started/getting-started-locally.md)
+* [Getting started locally](development/getting-started-locally.md)
 * [Dependency Management](development/dependency-management.md)
 * [Changing the API](development/changing-api.md)
+* [Add a new Etcd Cluster Component](development/add-new-etcd-cluster-component.md)
 * [Raising a Pull Request](development/raising-a-pr.md)
 * [Testing(Unit, Integration and E2E Tests)](development/testing.md)
 
 ## Deployment
 
-* [etcd-druid CLI Flags](deployment/cli-flags.md)
+* [Configure etcd-druid](deployment/configure-etcd-druid.md)
 * [Feature Gates](deployment/feature-gates.md)
+* [Getting started locally](getting-started-locally/getting-started-locally.md)
+* [Recommendations for productive setup](production-setup-recommendations.md)
 * [Supported K8S versions](deployment/supported_k8s_versions.md)
 
 ## Monitoring

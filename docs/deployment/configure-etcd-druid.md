@@ -44,11 +44,11 @@ etcd-druid provisions and manages several Kubernetes resources which we call [`E
 
 Following CLI flags are provided to configure the `etcd-components` webhook:
 
-| Flag                                    | Description                                                  | Default |
-| --------------------------------------- | ------------------------------------------------------------ | ------- |
-| enable-etcd-components-webhook          | Enable EtcdComponents Webhook to prevent unintended changes to resources managed by etcd-druid. | false   |
-| reconciler-service-account              | The fully qualified name of the service account used by etcd-druid for reconciling etcd resources. If unspecified, the default service account mounted for etcd-druid will be used |         |
-| etcd-components-exempt-service-accounts | In case there is a need to allow changes to `Etcd` resources from external controllers like `vertical-pod-autoscaler` then one must list the `ServiceAaccount` that is used by each such controller. | ""      |
+| Flag                                    | Description                                                  | Default                    |
+| --------------------------------------- | ------------------------------------------------------------ | -------------------------- |
+| enable-etcd-components-webhook          | Enable EtcdComponents Webhook to prevent unintended changes to resources managed by etcd-druid. | false                      |
+| reconciler-service-account              | The fully qualified name of the service account used by etcd-druid for reconciling etcd resources. If unspecified, the default service account mounted for etcd-druid will be used | etcd-druid-service-account |
+| etcd-components-exempt-service-accounts | In case there is a need to allow changes to `Etcd` resources from external controllers like `vertical-pod-autoscaler` then one must list the `ServiceAaccount` that is used by each such controller. | ""                         |
 
 ### Reconcilers
 
