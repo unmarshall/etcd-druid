@@ -22,8 +22,8 @@
 
 * [Configure etcd-druid](deployment/configure-etcd-druid.md)
 * [Feature Gates](deployment/feature-gates.md)
-* [Getting started locally](getting-started-locally/getting-started-locally.md)
-* [Recommendations for productive setup](production-setup-recommendations.md)
+* [Getting started locally](deployment/getting-started-locally/getting-started-locally.md)
+* [Recommendations for productive setup](deployment/production-setup-recommendations.md)
 * [Supported K8S versions](deployment/supported_k8s_versions.md)
 
 ## Monitoring
