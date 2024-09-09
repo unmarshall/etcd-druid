@@ -16,8 +16,6 @@ You can use [helm](https://helm.sh/) charts at [this](https://github.com/gardene
 * `secret-server-tls-crt.yaml` -  Contains the base64 encoded server certificate.
 * `validating-webhook-config.yaml` - Configuration for all webhooks that etcd-druid registers to the webhook server. At the time of writing this document [EtcdComponents](../concepts/etcd-cluster-resource-protection.md) webhook gets registered.
 
-
-
 ## Etcd cluster size
 
 [Recommendation](https://etcd.io/docs/v3.3/faq/#why-an-odd-number-of-cluster-members) from upstream etcd is to always have an odd number of members in an `Etcd` cluster.
@@ -26,15 +24,17 @@ You can use [helm](https://helm.sh/) charts at [this](https://github.com/gardene
 
 All `Etcd` cluster member [Pods](https://kubernetes.io/docs/concepts/workloads/pods/) provisioned by etcd-druid mount a [Persistent Volume](https://kubernetes.io/docs/concepts/storage/persistent-volumes/). A mounted persistent  storage helps in faster recovery in case of single-member transient failures. `etcd` is I/O intensive and its performance is heavily dependent on the [Storage Class](https://kubernetes.io/docs/concepts/storage/storage-classes/). It is therefore recommended that high performance SSD drives be used.
 
-At the time of writing this document etcd-druid provisions the following volumes:
+At the time of writing this document etcd-druid provisions the following volume types:
 
-| Cloud Provider | Type | Size | IOPS |
-| -------------- | ---- | ---- | ---- |
-| AWS            | GP3  | 25Gi | 3000 |
-| Azure          |      |      |      |
-| GCP            |      |      |      |
+| Cloud Provider | Type                                        | Size |
+| -------------- | ------------------------------------------- | ---- |
+| AWS            | GP3                                         | 25Gi |
+| Azure          | Premium SSD                                 | 33Gi |
+| GCP            | Performance (SSD) Persistent Disks (pd-ssd) | 25Gi |
 
 > Also refer: [Etcd Disk recommendation](https://etcd.io/docs/v3.4/op-guide/hardware/#disks).
+>
+> Additionally, each cloud provider offers redundancy for managed disks. You should choose redundancy as per your availability requirement.
 
 ## Backup & Restore
 
@@ -66,12 +66,11 @@ For every `Etcd` cluster provisioned by etcd-druid, `distroless` images are used
 ### Enable TLS for Peer and Client communication
 
 Generally you should enable TLS for peer and client communication for an `Etcd` cluster.  To enable TLS CA certificate, server and client certificates needs to be generated.
+You can refer to the list of TLS artifacts that are generated for an `Etcd` cluster provisioned by etcd-druid [here](../concepts/tls-configuration.md).
 
-> In [Gardener](https://github.com/gardener/gardener) we generate the following TLS artifacts for an `Etcd` cluster:
->
-> * 
+### Rotate TLS artifacts
 
-
+It is generally recommended to rotate all TLS certificates to reduce the chances of it getting leaked or have expired. Kubernetes does not support revocation of certificates (see [issue#18982](https://github.com/kubernetes/kubernetes/issues/18982)). One possible way to revoke certificates is to also revoke the entire chain including CA certificates.
 
 ## Scaling etcd pods
 
@@ -128,15 +127,21 @@ In most cloud providers there is no network cost (ingress/egress) for any traffi
 
 One could evaluate using [TopologyAwareRouting](https://kubernetes.io/docs/concepts/services-networking/topology-aware-routing/) which reduces cross-zonal traffic thus saving costs and latencies.
 
-> **Note:** In Gardener [this](https://github.com/gardener/gardener/blob/master/docs/operations/topology_aware_routing.md) is how it is done.
+> **Note:** You can read about how it is done in Gardener [here](https://github.com/gardener/gardener/blob/master/docs/operations/topology_aware_routing.md).
 
 ## Metrics & Alerts
 
-
+Monitoring `etcd` metrics is essential for fine tuning `Etcd` clusters. etcd already exports a lot of [metrics](https://etcd.io/docs/v3.4/metrics/). You can see the complete list of metrics that are exposed out of an `Etcd` cluster provisioned by etcd-druid [here](../monitoring/metrics.md). It is also recommended that you configure an alert for [etcd space quota alarms](https://etcd.io/docs/v3.2/op-guide/maintenance/#space-quota).
 
 ## Hibernation
 
+If you have a concept of `hibernating` kubernetes clusters, then following should be kept in mind:
 
+* Before you bring down the `Etcd` cluster, leverage the capability to take a `full snapshot` which captures the state of the etcd DB and stores it in the configured Object store. This ensures that when the cluster is woken up from hibernation it can restore from the last state with no data loss.
+* To save costs you should consider deleting the [PersistentVolumeClaims](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) associated to the StatefulSet pods. However, it must be ensured that you take a full snapshot as highlighted in the previous point.
+* When the cluster is woken up from hibernation then you should do the following (assuming prior to hibernation the cluster had a size of 3 members):
+  * Start the `Etcd` cluster with 1 replica. Let it restore from the last full snapshot.
+  * Once the cluster reports that it is ready, only then increase the replicas to its original value (e.g. 3). The other two members will start up each as learners and post learning they will join as voting members (`Followers`).
 
 ## Reference
 
