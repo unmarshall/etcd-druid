@@ -35,7 +35,7 @@ For detailed documentation, see our `/docs` folder. Please find the [index](docs
 
 ## Contributions
 
-If you wish to contribute then please see our [guidelines](https://github.com/gardener/etcd-druid/blob/4e9971aba3c3880a4cb6583d05843eabb8ca1409/CONTRIBUTING.md).
+If you wish to contribute then please see our [contributor guidelines](docs/development/contribution.md).
 
 ## Feedback and Support
 

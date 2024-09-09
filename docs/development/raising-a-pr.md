@@ -39,12 +39,26 @@ For every pull-request, it is ***mandatory*** to raise an [Issue](https://github
     * `make ci-e2e-kind` or any of its variants - these targets will run etcd-druid e2e tests.
 
     > **Note:** Please ensure that after introduction of new code the code coverage does not reduce. An increase in code coverage is always welcome.
+  
+* If you add new features, make sure that you create relevant documentation under `/docs`.
 
 ## 04-Raise a pull request
 
+* Create *Work In Progress [WIP]* pull requests only if you need a clarification or an explicit review before you can continue your work item.
 * Ensure that you have rebased your fork's development branch with `upstream` main/master branch.
 * Squash all commits into a minimal number of commits.
 * Fill in the PR template with appropriate details and provide the link the `Issue` for which a PR has been raised.
+* If your patch is not getting reviewed, or you need a specific person to review it, you can @-reply a reviewer asking for a review in the pull request or a comment.
+
+## 05-Post review
+
+* If a reviewer requires you to change your commit(s), please test the changes again.
+* Amend the affected commit(s) and force push onto your branch.
+* Set respective comments in your GitHub review as resolved.
+* Create a general PR comment to notify the reviewers that your amendments are ready for another round of review.
+
+## 06-Merging a pull request
+
 * Merge can only be done if the PR has approvals from atleast 2 reviewers.
 * Add an appropriate release note detailing what is introduced as part of this PR.
 * Before merging the PR, ensure that you squash and then merge.
