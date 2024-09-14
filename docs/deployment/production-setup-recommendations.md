@@ -40,7 +40,7 @@ At the time of writing this document etcd-druid provisions the following volume 
 
 A permanent quorum loss or data-volume corruption is a reality in production clusters and one must ensure that data loss is minimized. `Etcd` clusters provisioned via etcd-druid offer two levels of data-protection
 
-Via [etcd-backup-restore](https://github.com/gardener/etcd-backup-restore) all clusters started via etcd-druid get the capability to regularly take delta & full snapshots. These snapshots are stored in an object store. Additionally, a `snapshot-compaction` job is run to compact and defragment the latest snapshot, thereby reducing the time it takes to restore a cluster in case of a permanent quorum loss. You can read the [detailed guide](../operations/recovery-from-quorum-loss.md) on how to restore from permanent quorum loss.
+Via [etcd-backup-restore](https://github.com/gardener/etcd-backup-restore) all clusters started via etcd-druid get the capability to regularly take delta & full snapshots. These snapshots are stored in an object store. Additionally, a `snapshot-compaction` job is run to compact and defragment the latest snapshot, thereby reducing the time it takes to restore a cluster in case of a permanent quorum loss. You can read the [detailed guide](../operations/recovery) on how to restore from permanent quorum loss.
 
 It is therefore recommended that you configure an `Object store` in the cloud/infra provider of your choice, enabled backup & restore functionality by filling in [store](https://github.com/gardener/etcd-druid/blob/55efca1c8f6c852b0a4e97f08488ffec2eed0e68/api/v1alpha1/etcd.go#L143) configuration of an `Etcd` custom CR.
 
@@ -66,7 +66,7 @@ For every `Etcd` cluster provisioned by etcd-druid, `distroless` images are used
 ### Enable TLS for Peer and Client communication
 
 Generally you should enable TLS for peer and client communication for an `Etcd` cluster.  To enable TLS CA certificate, server and client certificates needs to be generated.
-You can refer to the list of TLS artifacts that are generated for an `Etcd` cluster provisioned by etcd-druid [here](../concepts/tls-configuration.md).
+You can refer to the list of TLS artifacts that are generated for an `Etcd` cluster provisioned by etcd-druid [here](../usage/tls-configuration.md).
 
 ### Rotate TLS artifacts
 
@@ -78,12 +78,14 @@ It is generally recommended to rotate all TLS certificates to reduce the chances
 
 * There is a soft limit of 8GB and a hard limit of 10GB for the etcd DB beyond which perfomance and stability of etcd is not guaranteed. 
 * All members of etcd maintain the entire replica of the entire DB, thus scaling-out will not really help if the storage demand grows.
-* Increasing the number of cluster members beyond 5 also increases the cost of consensus amongst now a larger quorum, increases load on the single leader as it needs to also participate in bringing up [etcd learner](https://etcd.io/docs/v3.3/learning/learner/),
+* Increasing the number of cluster members beyond 5 also increases the cost of consensus amongst now a larger quorum, increases load on the single leader as it needs to also participate in bringing up [etcd learner](https://etcd.io/docs/v3.3/learning/learner/).
 
 Therefore the following is recommended:
 
 * To meet the increased demand, configure a [VPA](https://github.com/kubernetes/autoscaler/tree/cecb34cb863fb015264098b5379bdba40a9113cf/vertical-pod-autoscaler). You have to be careful on selection of `containerPolicies`, `targetRef`.
 * To meet the increased demand in storage etcd-druid already configures each etcd member to [auto-compact](https://etcd.io/docs/v3.4/op-guide/maintenance/#auto-compaction) and it also configures periodic [defragmentation](https://etcd.io/docs/v3.4/op-guide/maintenance/#defragmentation) of the etcd DB. The only case this will not help is when you only have unique writes all the time.
+
+> **Note:** Care should be taken with usage of VPA. While it helps to vertically scale up etcd-member pods, it also can cause transient quorum loss. This is a direct consequence of the design of VPA - where recommendation is done by [Recommender](https://github.com/kubernetes/autoscaler/blob/2800c70d425b89e88cb6e608df494a0cd21f242d/vertical-pod-autoscaler/pkg/recommender/README.md) component, [Updater](https://github.com/kubernetes/autoscaler/blob/2800c70d425b89e88cb6e608df494a0cd21f242d/vertical-pod-autoscaler/pkg/updater/README.md) evicts the pods that do not have the resources recommended by the `Recommender` and [Admission Controller](https://github.com/kubernetes/autoscaler/blob/2800c70d425b89e88cb6e608df494a0cd21f242d/vertical-pod-autoscaler/pkg/admission-controller/README.md) which updates the resources on the Pods. All these three components act asynchronously and can fail independently, so while VPA respects PDB's it can easily enter into a state where updater evicts a pod while respecting PDB but the admission controller fails to apply the recommendation. The pod comes with a default resources which still differ from the recommended values, thus causing a repeat eviction. There are other race conditions that can also occur and one needs to be careful of using VPA for quorum based workloads.
 
 ## High Availability
 

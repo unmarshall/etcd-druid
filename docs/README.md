@@ -4,7 +4,7 @@
 
 ## Concepts
 
-* [Controllers](concepts/controllers.md)
+* [Controllers](development/controllers.md)
 * [Webhooks](concepts/webhooks.md)
 * [Etcd Cluster Components](concepts/etcd-cluster-components.md)
 
@@ -32,7 +32,7 @@
 
 ## Operations
 
-* [Recover from Quorum Loss](operations/recovery-from-quorum-loss.md)
+* [Recover from Quorum Loss](operations/recovery)
 
 ## Benchmarks
 

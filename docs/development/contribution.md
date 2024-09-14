@@ -34,5 +34,5 @@ We kindly ask you to follow the [Pull Request Checklist](raising-a-pr.md) to ens
 
 ## Issues and Planning
 
-We use GitHub issues to track bugs and enhancement requests. Please provide as much context as possible when you open an issue. The information you provide must be comprehensive enough to understand, reproduce the behavior and find related reports of that issue for the assignee. Therefore, contributors may use but aren't restricted to the issue template provided by the etcd-druid maintainers.
+We use GitHub [issues](https://github.com/gardener/etcd-druid/issues) to track bugs and enhancement requests. Please provide as much context as possible when you open an issue. The information you provide must be comprehensive enough to understand, reproduce the behavior and find related reports of that issue for the assignee. Therefore, contributors may use but aren't restricted to the issue template provided by the etcd-druid maintainers.
 
