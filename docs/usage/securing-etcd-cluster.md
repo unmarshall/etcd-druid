@@ -8,8 +8,6 @@ In order to undertand all the TLS artifacts that are required to setup etcd-drui
 
 > **Note:** For [Gardener](https://github.com/gardener/gardener) setup all the communication lines are TLS enabled. 
 
-
-
 <img src="../assets/images/tls-communication-lines.excalidraw.png" alt="communication-lines" style="width:1200px;">
 
 
