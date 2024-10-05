@@ -93,8 +93,21 @@ func FetchPVCWarningMessagesForStatefulSet(ctx context.Context, cl client.Client
 
 var (
 	etcdTLSVolumeMountNames   = sets.New[string](common.VolumeNameEtcdCA, common.VolumeNameEtcdServerTLS, common.VolumeNameEtcdClientTLS, common.VolumeNameEtcdPeerCA, common.VolumeNameEtcdPeerServerTLS, common.VolumeNameBackupRestoreCA)
+	peerTLSVolumeMountNames   = sets.New[string](common.VolumeNameEtcdPeerCA, common.VolumeNameEtcdPeerServerTLS)
 	etcdbrTLSVolumeMountNames = sets.New[string](common.VolumeNameBackupRestoreServerTLS, common.VolumeNameEtcdCA, common.VolumeNameEtcdClientTLS)
 )
+
+// GetStatefulSetPeerTLSVolumeMounts returns the TLS volume mounts used for peer communication
+func GetStatefulSetPeerTLSVolumeMounts(sts *appsv1.StatefulSet) []corev1.VolumeMount {
+	tlsVolMounts := filterTLSVolumeMounts(common.ContainerNameEtcd, sts.Spec.Template.Spec.Containers[0].VolumeMounts)
+	peerTLSVolMounts := make([]corev1.VolumeMount, 0, len(tlsVolMounts))
+	for _, volMount := range tlsVolMounts {
+		if peerTLSVolumeMountNames.Has(volMount.Name) {
+			peerTLSVolMounts = append(peerTLSVolMounts, volMount)
+		}
+	}
+	return peerTLSVolMounts
+}
 
 // GetStatefulSetContainerTLSVolumeMounts returns a map of container name to TLS volume mounts for the given StatefulSet.
 func GetStatefulSetContainerTLSVolumeMounts(sts *appsv1.StatefulSet) map[string][]corev1.VolumeMount {

@@ -124,14 +124,8 @@ func (r _resource) Sync(ctx component.OperatorContext, etcd *druidv1alpha1.Etcd)
 			return r.createOrPatch(ctx, etcd)
 		}
 	}
-	// StatefulSet exists, check if TLS has been enabled for peer communication, if yes then it is currently a multistep
-	// process to ensure that all members are updated and establish peer TLS communication.
-	// There is no need to do this check if the etcd.Spec.Replicas have been set to 0 (scale down to 0 case).
-	// TODO: Once we support scale down to non-zero replicas then we will need to adjust the replicas for which we check for TLS.
-	if etcd.Spec.Replicas > 0 {
-		if err = r.handleTLSChanges(ctx, etcd, existingSTS); err != nil {
-			return err
-		}
+	if err = r.handleTLSChanges(ctx, etcd, existingSTS); err != nil {
+		return err
 	}
 	return r.createOrPatch(ctx, etcd)
 }
@@ -174,7 +168,7 @@ func (r _resource) handleStsPodLabelsOnMismatch(ctx component.OperatorContext, e
 	if !podsHaveDesiredLabels {
 		return druiderr.New(druiderr.ErrRequeueAfter,
 			component.OperationPreSync,
-			fmt.Sprintf("StatefulSet pods are not yet updated with new labels, for StatefulSet: %v for etcd: %v", getObjectKey(sts.ObjectMeta), druidv1alpha1.GetNamespaceName(etcd.ObjectMeta)),
+			fmt.Sprintf("StatefulSet pods are not yet updated with new labels or post update all replicas of StatefulSet are not yet ready, for StatefulSet: %v for etcd: %v", getObjectKey(sts.ObjectMeta), druidv1alpha1.GetNamespaceName(etcd.ObjectMeta)),
 		)
 	} else {
 		r.logger.Info("StatefulSet pods have all the desired labels", "objectKey", getObjectKey(etcd.ObjectMeta))
@@ -310,15 +304,43 @@ func (r _resource) createOrPatch(ctx component.OperatorContext, etcd *druidv1alp
 }
 
 func (r _resource) handleTLSChanges(ctx component.OperatorContext, etcd *druidv1alpha1.Etcd, existingSts *appsv1.StatefulSet) error {
-	isSTSTLSConfigNotInSync := r.isStatefulSetTLSConfigNotInSync(etcd, existingSts)
-	if isSTSTLSConfigNotInSync {
-		if err := r.createOrPatchWithReplicas(ctx, etcd, *existingSts.Spec.Replicas); err != nil {
-			return druiderr.WrapError(err,
-				ErrSyncStatefulSet,
-				component.OperationSync,
-				fmt.Sprintf("Error creating or patching StatefulSet with TLS changes for StatefulSet: %v, etcd: %v", client.ObjectKeyFromObject(existingSts), client.ObjectKeyFromObject(etcd)))
-		}
+	// There are no replicas and there is no need to handle any TLS changes. Once replicas are increased then new pods will automatically have the TLS changes.
+	if etcd.Spec.Replicas == 0 {
+		r.logger.Info("Skipping handling TLS changes for StatefulSet as replicas are set to 0")
+		return nil
 	}
+
+	isSTSTLSConfigInSync := isStatefulSetTLSConfigInSync(etcd, existingSts)
+	if isSTSTLSConfigInSync {
+		r.logger.Info("TLS configuration is in sync for StatefulSet")
+		return nil
+	}
+	// check if the etcd cluster is in a state where it can handle TLS changes.
+	// If the peer URL TLS has changed and there are more than 1 replicas in the etcd cluster. Then wait for all members to be ready.
+	// If we do not wait for all members to be ready patching STS to reflect peer TLS changes will cause rolling update which will never finish
+	// and the cluster will be stuck in a bad state. Updating peer URL is a cluster wide operation as all members will need to know that a peer TLS has changed.
+	// If not all members are ready then rolling-update of StatefulSet can potentially cause a healthy node to be restarted causing loss of quorum from which
+	// there will not be an automatic recovery.
+	if existingSts.Spec.Replicas != nil &&
+		*existingSts.Spec.Replicas > 1 &&
+		existingSts.Status.ReadyReplicas > 0 &&
+		existingSts.Status.ReadyReplicas < *existingSts.Spec.Replicas {
+		return druiderr.New(
+			druiderr.ErrRequeueAfter,
+			component.OperationSync,
+			fmt.Sprintf("Not all etcd cluster members are ready. It is not safe to patch STS for Peer URL TLS changes. Replicas: %d, ReadyReplicas: %d", *existingSts.Spec.Replicas, existingSts.Status.ReadyReplicas))
+	}
+	return r.processTLSChanges(ctx, etcd, existingSts)
+}
+
+func (r _resource) processTLSChanges(ctx component.OperatorContext, etcd *druidv1alpha1.Etcd, existingSts *appsv1.StatefulSet) error {
+	if err := r.createOrPatchWithReplicas(ctx, etcd, *existingSts.Spec.Replicas); err != nil {
+		return druiderr.WrapError(err,
+			ErrSyncStatefulSet,
+			component.OperationSync,
+			fmt.Sprintf("Error creating or patching StatefulSet with TLS changes for StatefulSet: %v, etcd: %v", client.ObjectKeyFromObject(existingSts), client.ObjectKeyFromObject(etcd)))
+	}
+
 	peerTLSInSyncForAllMembers, err := utils.IsPeerURLInSyncForAllMembers(ctx, r.client, ctx.Logger, etcd, *existingSts.Spec.Replicas)
 	if err != nil {
 		return druiderr.WrapError(err,
@@ -337,12 +359,18 @@ func (r _resource) handleTLSChanges(ctx component.OperatorContext, etcd *druidv1
 	}
 }
 
-func (r _resource) isStatefulSetTLSConfigNotInSync(etcd *druidv1alpha1.Etcd, sts *appsv1.StatefulSet) bool {
+func hasPeerTLSConfigChanged(etcd *druidv1alpha1.Etcd, existingSts *appsv1.StatefulSet) bool {
+	newEtcdWrapperTLSVolMounts := getEtcdContainerSecretVolumeMounts(etcd)
+	existingPeerTLSVolMounts := utils.GetStatefulSetPeerTLSVolumeMounts(existingSts)
+	return hasTLSVolumeMountsChanged(existingPeerTLSVolMounts, newEtcdWrapperTLSVolMounts)
+}
+
+func isStatefulSetTLSConfigInSync(etcd *druidv1alpha1.Etcd, sts *appsv1.StatefulSet) bool {
 	newEtcdbrTLSVolMounts := getBackupRestoreContainerSecretVolumeMounts(etcd)
 	newEtcdWrapperTLSVolMounts := getEtcdContainerSecretVolumeMounts(etcd)
 	containerTLSVolMounts := utils.GetStatefulSetContainerTLSVolumeMounts(sts)
-	return hasTLSVolumeMountsChanged(containerTLSVolMounts[common.ContainerNameEtcd], newEtcdWrapperTLSVolMounts) ||
-		hasTLSVolumeMountsChanged(containerTLSVolMounts[common.ContainerNameEtcdBackupRestore], newEtcdbrTLSVolMounts)
+	return !hasTLSVolumeMountsChanged(containerTLSVolMounts[common.ContainerNameEtcd], newEtcdWrapperTLSVolMounts) &&
+		!hasTLSVolumeMountsChanged(containerTLSVolMounts[common.ContainerNameEtcdBackupRestore], newEtcdbrTLSVolMounts)
 }
 
 func hasTLSVolumeMountsChanged(existingVolMounts, newVolMounts []corev1.VolumeMount) bool {

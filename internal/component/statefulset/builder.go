@@ -361,9 +361,10 @@ func (b *stsBuilder) getEtcdDataVolumeMount() corev1.VolumeMount {
 
 func (b *stsBuilder) getEtcdContainer() corev1.Container {
 	return corev1.Container{
-		Name:            common.ContainerNameEtcd,
-		Image:           b.etcdImage,
-		ImagePullPolicy: corev1.PullIfNotPresent,
+		Name:  common.ContainerNameEtcd,
+		Image: b.etcdImage,
+		//ImagePullPolicy: corev1.PullIfNotPresent,
+		ImagePullPolicy: corev1.PullAlways,
 		Args:            b.getEtcdContainerCommandArgs(),
 		ReadinessProbe:  b.getEtcdContainerReadinessProbe(),
 		Ports: []corev1.ContainerPort{
@@ -396,9 +397,10 @@ func (b *stsBuilder) getBackupRestoreContainer() (corev1.Container, error) {
 	env = append(env, providerEnv...)
 
 	return corev1.Container{
-		Name:            common.ContainerNameEtcdBackupRestore,
-		Image:           b.etcdBackupRestoreImage,
-		ImagePullPolicy: corev1.PullIfNotPresent,
+		Name:  common.ContainerNameEtcdBackupRestore,
+		Image: b.etcdBackupRestoreImage,
+		//ImagePullPolicy: corev1.PullIfNotPresent,
+		ImagePullPolicy: corev1.PullAlways,
 		Args:            b.getBackupRestoreContainerCommandArgs(),
 		Ports: []corev1.ContainerPort{
 			{
