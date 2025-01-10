@@ -3,6 +3,7 @@ module github.com/gardener/etcd-druid
 go 1.23.0
 
 require (
+	github.com/gardener/etcd-druid/api v0.0.0-00010101000000-000000000000
 	github.com/gardener/etcd-backup-restore v0.32.0
 	github.com/gardener/gardener v1.110.1
 	github.com/go-logr/logr v1.4.2
@@ -168,4 +169,8 @@ require (
 )
 
 // TODO: remove once etcd-backup-restore v0.33.0 is released
-replace github.com/gardener/etcd-backup-restore => github.com/gardener/etcd-backup-restore v0.32.1-0.20241230124652-2d7dab8e6dc1 // https://github.com/gardener/etcd-backup-restore/commit/2d7dab8e6dc1385b50d1f64d0e5b70467564c2a3
+replace (
+	github.com/gardener/etcd-backup-restore => github.com/gardener/etcd-backup-restore v0.32.1-0.20241230124652-2d7dab8e6dc1 // https://github.com/gardener/etcd-backup-restore/commit/2d7dab8e6dc1385b50d1f64d0e5b70467564c2a3
+	github.com/gardener/etcd-druid/api => ./api
+
+)

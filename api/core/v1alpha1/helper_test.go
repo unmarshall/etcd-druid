@@ -11,8 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/utils/ptr"
-
-	. "github.com/onsi/gomega"
 )
 
 const (

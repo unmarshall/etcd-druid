@@ -69,12 +69,12 @@ func GetPodDisruptionBudgetName(etcdObjMeta metav1.ObjectMeta) string {
 
 // GetRoleName returns the role name for the Etcd.
 func GetRoleName(etcdObjMeta metav1.ObjectMeta) string {
-	return fmt.Sprintf("%s:etcd:%s", GroupVersion.Group, etcdObjMeta.Name)
+	return fmt.Sprintf("%s:etcd:%s", SchemeGroupVersion.Group, etcdObjMeta.Name)
 }
 
 // GetRoleBindingName returns the role binding name for the Etcd.
 func GetRoleBindingName(etcdObjMeta metav1.ObjectMeta) string {
-	return fmt.Sprintf("%s:etcd:%s", GroupVersion.Group, etcdObjMeta.Name)
+	return fmt.Sprintf("%s:etcd:%s", SchemeGroupVersion.Group, etcdObjMeta.Name)
 }
 
 // GetDeltaSnapshotLeaseName returns the name of the delta snapshot lease for the Etcd.
@@ -131,7 +131,7 @@ func GetDefaultLabels(etcdObjMeta metav1.ObjectMeta) map[string]string {
 // GetAsOwnerReference returns an OwnerReference object that represents the current Etcd instance.
 func GetAsOwnerReference(etcdObjMeta metav1.ObjectMeta) metav1.OwnerReference {
 	return metav1.OwnerReference{
-		APIVersion:         GroupVersion.String(),
+		APIVersion:         SchemeGroupVersion.String(),
 		Kind:               "Etcd",
 		Name:               etcdObjMeta.Name,
 		UID:                etcdObjMeta.UID,
