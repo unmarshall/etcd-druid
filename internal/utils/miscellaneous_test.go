@@ -1,8 +1,13 @@
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Gardener contributors
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package utils
 
 import (
-	. "github.com/onsi/gomega"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 func TestMergeStringMaps(t *testing.T) {
@@ -48,6 +53,7 @@ func TestMergeStringMaps(t *testing.T) {
 	g := NewWithT(t)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			g.Expect(MergeMaps(tc.sourceMaps...)).To(Equal(tc.expected))
 		})
 	}
